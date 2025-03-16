@@ -1,0 +1,41 @@
+Model Evaluation Summary
+======================
+
+
+DIABETES MODEL
+===============
+Accuracy: 0.7468
+Precision: 0.6290
+Recall: 0.7091
+F1-Score: 0.6667
+
+Classification Report:
+              precision    recall  f1-score   support
+
+           0       0.83      0.77      0.80        99
+           1       0.63      0.71      0.67        55
+
+    accuracy                           0.75       154
+   macro avg       0.73      0.74      0.73       154
+weighted avg       0.76      0.75      0.75       154
+
+==================================================
+
+HEART MODEL
+============
+Accuracy: 0.9854
+Precision: 1.0000
+Recall: 0.9709
+F1-Score: 0.9852
+
+Classification Report:
+              precision    recall  f1-score   support
+
+           0       0.97      1.00      0.99       102
+           1       1.00      0.97      0.99       103
+
+    accuracy                           0.99       205
+   macro avg       0.99      0.99      0.99       205
+weighted avg       0.99      0.99      0.99       205
+
+==================================================

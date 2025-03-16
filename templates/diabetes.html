@@ -4,7 +4,7 @@
 body {
     font-family: Cambria;
     height: 100%;
-    background-image: linear-gradient(#4e0374, #c37ee6);
+    background-image: linear-gradient(#c1e1e5, #c1f3d0);
     margin: 0;
     background-repeat: no-repeat;
     background-attachment: fixed;
@@ -17,28 +17,41 @@ body {
         <div class="card card-body" style="border: 1px solid black; background-color: #daa8f4">
             <form class="form-horizontal" action="{{ url_for('predictPage') }}" method="POST">
                 <div class="form-group">
-                    <input style="border: 1px solid black; background-color: #f0d0ff" class="form-control" type="text" name="Pregnancies" placeholder="No. of Pregnancies">
+                    <input style="border: 1px solid black; background-color: #f0d0ff" class="form-control" type="text" name="Pregnancies" placeholder="No. of Pregnancies" required>
                 </div>
                 <div class="form-group">
-                    <input style="border: 1px solid black; background-color: #f0d0ff" class="form-control" type="text" name="Glucose" placeholder="Glucose">
+                    <input style="border: 1px solid black; background-color: #f0d0ff" class="form-control" type="text" name="Glucose" placeholder="Glucose" required>
                 </div>
                 <div class="form-group">
-                    <input style="border: 1px solid black; background-color: #f0d0ff" class="form-control" type="text" name="BloodPressure" placeholder="Blood Pressure (in mmHg)">
+                    <input style="border: 1px solid black; background-color: #f0d0ff" class="form-control" type="text" name="BloodPressure" placeholder="Blood Pressure (in mmHg)" required>
                 </div>
                 <div class="form-group">
-                    <input style="border: 1px solid black; background-color: #f0d0ff" class="form-control" type="text" name="SkinThickness" placeholder="Skin Thickness (in mm)">
+                    <input style="border: 1px solid black; background-color: #f0d0ff" class="form-control" type="text" name="SkinThickness" placeholder="Skin Thickness (in mm)" required>
                 </div>
                 <div class="form-group">
-                    <input style="border: 1px solid black; background-color: #f0d0ff" class="form-control" type="text" name="Insulin" placeholder="Insulin (in µU/ml)">
+                    <input style="border: 1px solid black; background-color: #f0d0ff" class="form-control" type="text" name="Insulin" placeholder="Insulin (in µU/ml)" required>
+                </div>
+                <div class="bmi-section">
+                    <h4 class="bmi-title">BMI Calculator</h4>
+                    <div class="form-group">
+                        <input style="border: 1px solid black; background-color: #f0d0ff" class="form-control" type="number" step="0.01" id="height" placeholder="Height (in cm)" data-only-display="true">
+                    </div>
+                    <div class="form-group">
+                        <input style="border: 1px solid black; background-color: #f0d0ff" class="form-control" type="number" step="0.01" id="weight" placeholder="Weight (in kg)" data-only-display="true">
+                    </div>
+                    <div class="form-group">
+                        <input style="border: 1px solid black; background-color: #f0d0ff" class="form-control" type="text" id="bmi" placeholder="BMI (calculated)" readonly>
+                        <input type="hidden" id="bmi_display" name="bmi_display">
+                    </div>
                 </div>
                 <div class="form-group">
-                    <input style="border: 1px solid black; background-color: #f0d0ff" class="form-control" type="text" name="BMI" placeholder="BMI">
+                    <input style="border: 1px solid black; background-color: #f0d0ff" class="form-control" type="text" name="BMI" id="BMI" placeholder="BMI" readonly required>
                 </div>
                 <div class="form-group">
-                    <input style="border: 1px solid black; background-color: #f0d0ff" class="form-control" type="text" name="DiabetesPedigreeFunction" placeholder="Diabetes Pedigree Function">
+                    <input style="border: 1px solid black; background-color: #f0d0ff" class="form-control" type="text" name="DiabetesPedigreeFunction" placeholder="Diabetes Pedigree Function" required>
                 </div>
                 <div class="form-group">
-                    <input style="border: 1px solid black; background-color: #f0d0ff" class="form-control" type="text" name="Age" placeholder="Age (in years)">
+                    <input style="border: 1px solid black; background-color: #f0d0ff" class="form-control" type="text" name="Age" placeholder="Age (in years)" required>
                 </div>
 
                 <input style="background-color: #4e0374" type="submit" class="btn btn-info btn-block" value="Predict">
@@ -47,4 +60,22 @@ body {
     </div>
     <div class="col-md-3"></div>
 </div>
+
+<script>
+function calculateBMI() {
+    const height = parseFloat(document.getElementById('height').value);
+    const weight = parseFloat(document.getElementById('weight').value);
+    
+    if (height && weight) {
+        const heightInMeters = height / 100;
+        const bmi = (weight / (heightInMeters * heightInMeters)).toFixed(2);
+        document.getElementById('bmi').value = bmi;
+        document.getElementById('bmi_display').value = bmi;
+        document.getElementById('BMI').value = bmi; // Update the original BMI field used for prediction
+    }
+}
+
+document.getElementById('height').addEventListener('input', calculateBMI);
+document.getElementById('weight').addEventListener('input', calculateBMI);
+</script>
 {% endblock %}

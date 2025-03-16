@@ -5,6 +5,7 @@ import numpy as np
 from PIL import Image
 import tensorflow as tf
 from ocr import preprocess_image, extract_text_from_image, extract_medical_fields
+import joblib
 
 app = Flask(__name__)
 #app.secret_key = 'your_secret_key_here'  # Required for flash messages
@@ -12,69 +13,39 @@ app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)  # Ensure the uploads directory exists
 app.secret_key = 'your_secret_key_here'  # Required for flash messages
-
-def predictDiabetes(input_data):
-    # input_data = (5,166,72,19,175,25.8,0.587,51)
-    # filename = 'diabetes_model.sav'
-    # pickle.dump(classifier, open(filename, 'wb'))
-    loaded_model = pickle.load(open('./models/diabetes_model.sav', 'rb'))
-
-    # changing the input_data to numpy array
-    input_data_as_numpy_array = np.asarray(input_data)
-
-    # reshape the array as we are predicting for one instance
-    input_data_reshaped = input_data_as_numpy_array.reshape(1,-1)
-
-    prediction = loaded_model.predict(input_data_reshaped)
-    print(prediction)
-    return prediction
-
 def predict(values, dic):
     # diabetes
     if len(values) == 8:
-        dic2 = {'NewBMI_Obesity 1': 0, 'NewBMI_Obesity 2': 0, 'NewBMI_Obesity 3': 0, 'NewBMI_Overweight': 0,
-                'NewBMI_Underweight': 0, 'NewInsulinScore_Normal': 0, 'NewGlucose_Low': 0,
-                'NewGlucose_Normal': 0, 'NewGlucose_Overweight': 0, 'NewGlucose_Secret': 0}
+        try:
+            features = np.array([[
+                float(dic['Pregnancies']),
+                float(dic['Glucose']),
+                float(dic['BloodPressure']),
+                float(dic['SkinThickness']),
+                float(dic['Insulin']),
+                float(dic['BMI']),
+                float(dic['DiabetesPedigreeFunction']),
+                float(dic['Age'])
+            ]])
 
-        if dic['BMI'] <= 18.5:
-            dic2['NewBMI_Underweight'] = 1
-        elif 18.5 < dic['BMI'] <= 24.9:
-            pass
-        elif 24.9 < dic['BMI'] <= 29.9:
-            dic2['NewBMI_Overweight'] = 1
-        elif 29.9 < dic['BMI'] <= 34.9:
-            dic2['NewBMI_Obesity 1'] = 1
-        elif 34.9 < dic['BMI'] <= 39.9:
-            dic2['NewBMI_Obesity 2'] = 1
-        elif dic['BMI'] > 39.9:
-            dic2['NewBMI_Obesity 3'] = 1
+            model = joblib.load('models/diabetes.pkl')
+            prediction = model.predict(features)[0]
+            prediction_proba = model.predict_proba(features)[0]
+            risk_percentage = round(prediction_proba[1] * 100, 2)
 
-        if 16 <= dic['Insulin'] <= 166:
-            dic2['NewInsulinScore_Normal'] = 1
+            if prediction == 1:
+                if risk_percentage > 75:
+                    return f"Diabetes Detected (High Risk - {risk_percentage}%)"
+                elif risk_percentage > 50:
+                    return f"Diabetes Detected (Moderate Risk - {risk_percentage}%)"
+                else:
+                    return f"Diabetes Detected (Low Risk - {risk_percentage}%)"
+            else:
+                return f"No Diabetes Detected (Risk: {risk_percentage}%)"
 
-        if dic['Glucose'] <= 70:
-            dic2['NewGlucose_Low'] = 1
-        elif 70 < dic['Glucose'] <= 99:
-            dic2['NewGlucose_Normal'] = 1
-        elif 99 < dic['Glucose'] <= 126:
-            dic2['NewGlucose_Overweight'] = 1
-        elif dic['Glucose'] > 126:
-            dic2['NewGlucose_Secret'] = 1
-
-        dic.update(dic2)
-
-        # values2 = list(map(float, list(dic.values())))
-        values2 = {'names': [], 'formats': []}
-        for key in dic:
-            values2["names"].append(key)
-            values2["formats"].append(dic[key])
-
-        model = pickle.load(open('models/diabetes.pkl','rb'))
-        # values = np.asarray(values2)
-        values = values2
-
-        return model.predict(values.reshape(1, -1))[0]
-
+        except Exception as e:
+            print(f"Error in diabetes prediction: {str(e)}")
+            raise e
 
     # breast_cancer
     elif len(values) == 22:
@@ -84,9 +55,44 @@ def predict(values, dic):
 
     # heart disease
     elif len(values) == 13:
-        model = pickle.load(open('models/heart.pkl','rb'))
-        values = np.asarray(values)
-        return model.predict(values.reshape(1, -1))[0]
+        try:
+            features = np.array([[
+                float(dic['age']),
+                float(dic['sex']),
+                float(dic['cp']),
+                float(dic['trestbps']),
+                float(dic['chol']),
+                float(dic['fbs']),
+                float(dic['restecg']),
+                float(dic['thalach']),
+                float(dic['exang']),
+                float(dic['oldpeak']),
+                float(dic['slope']),
+                float(dic['ca']),
+                float(dic['thal'])
+            ]])
+
+            model = joblib.load('models/heart.pkl')
+            scaler = joblib.load('models/heart_scaler.pkl')
+            features_scaled = scaler.transform(features)
+            
+            prediction = model.predict(features_scaled)[0]
+            prediction_proba = model.predict_proba(features_scaled)[0]
+            risk_percentage = round(prediction_proba[1] * 100, 2)
+
+            if prediction == 1:
+                if risk_percentage > 75:
+                    return f"Heart Disease Detected (High Risk - {risk_percentage}%)"
+                elif risk_percentage > 50:
+                    return f"Heart Disease Detected (Moderate Risk - {risk_percentage}%)"
+                else:
+                    return f"Heart Disease Detected (Low Risk - {risk_percentage}%)"
+            else:
+                return f"No Heart Disease Detected (Risk: {risk_percentage}%)"
+
+        except Exception as e:
+            print(f"Error in heart disease prediction: {str(e)}")
+            raise e
 
     # kidney disease
     elif len(values) == 24:
@@ -96,9 +102,43 @@ def predict(values, dic):
 
     # liver disease
     elif len(values) == 10:
-        model = pickle.load(open('models/liver.pkl','rb'))
-        values = np.asarray(values)
-        return model.predict(values.reshape(1, -1))[0]
+        try:
+            features = np.array([[
+                float(dic['Age']),
+                float(dic['Gender']),
+                float(dic['Total_Bilirubin']),
+                float(dic['Direct_Bilirubin']),
+                float(dic['Alkaline_Phosphotase']),
+                float(dic['Alamine_Aminotransferase']),
+                float(dic['Aspartate_Aminotransferase']),
+                float(dic['Total_Protiens']),
+                float(dic['Albumin']),
+                float(dic['Albumin_and_Globulin_Ratio'])
+            ]])
+
+            # Load model only
+            model = joblib.load('models/liver.pkl')
+            
+            # Make prediction directly without scaling
+            prediction = model.predict(features)[0]
+            prediction_proba = model.predict_proba(features)[0]
+            risk_percentage = round(prediction_proba[1] * 100, 2)
+
+            if prediction == 1:
+                if risk_percentage > 75:
+                    return f"Liver Disease Detected (High Risk - {risk_percentage}%)"
+                elif risk_percentage > 50:
+                    return f"Liver Disease Detected (Moderate Risk - {risk_percentage}%)"
+                else:
+                    return f"Liver Disease Detected (Low Risk - {risk_percentage}%)"
+            else:
+                return f"No Liver Disease Detected (Risk: {risk_percentage}%)"
+
+        except Exception as e:
+            print(f"Error in liver disease prediction: {str(e)}")
+            raise e
+
+    return "Error: Invalid input dimensions"
 
 @app.route("/")
 def home():
@@ -167,40 +207,66 @@ def malariaPage():
 def pneumoniaPage():
     return render_template('pneumonia.html')
 
-@app.route("/predict", methods = ['POST', 'GET'])
+@app.route("/predict", methods=['POST', 'GET'])
 def predictPage():
-    print()
     try:
         if request.method == 'POST':
-            data = request.form.to_dict()
-            # to_predict_dict = {'Pregnancies': '6', 'Glucose': '148', 'BloodPressure': '72', 'SkinThickness': '35', 'Insulin': '0', 'BMI': '33.6', 'DiabetesPedigreeFunction': '0.627', 'Age': '50'}
-            # print(to_predict_dict)
+            to_predict_dict = request.form.to_dict()
+            
+            # Extract BMI display value
+            bmi_display = to_predict_dict.get('bmi_display', None)
+            
+            # Remove any non-prediction fields
+            if 'bmi_display' in to_predict_dict:
+                del to_predict_dict['bmi_display']
+            if 'height' in to_predict_dict:
+                del to_predict_dict['height']
+            if 'weight' in to_predict_dict:
+                del to_predict_dict['weight']
 
-            # for key, value in to_predict_dict.items():
-            #     try:
-            #         to_predict_dict[key] = int(value)
-            #     except :
-            #         to_predict_dict[key] = float(value)
-            # to_predict_list = list(map(float, list(to_predict_dict.values())))
-            # pred = predict(to_predict_list, to_predict_dict)
+            print("Form data:", to_predict_dict)  # Debug print
 
-            # data = {'Pregnancies': '6', 'Glucose': '148', 'BloodPressure': '72', 'SkinThickness': '35', 'Insulin': '0', 'BMI': '33.6', 'DiabetesPedigreeFunction': '0.627', 'Age': '50'}
+            # Convert values to float
+            for key, value in to_predict_dict.items():
+                try:
+                    to_predict_dict[key] = float(value)
+                except ValueError as e:
+                    print(f"Error converting {key}: {value}")
+                    raise ValueError(f"Invalid value for {key}: {value}")
 
-            # Convert values to appropriate types (int/float)
-            values_tuple = tuple(
-                float(value) if '.' in value else int(value) 
-                for value in data.values()
-            )
-            print(values_tuple)
+            to_predict_list = list(map(float, list(to_predict_dict.values())))
+            
+            print("Prediction input list:", to_predict_list)  # Debug print
+            
+            pred = predict(to_predict_list, to_predict_dict)
+            
+            # Calculate BMI category if BMI is available
+            bmi_category = None
+            if bmi_display:
+                try:
+                    bmi_value = float(bmi_display)
+                    if bmi_value < 18.5:
+                        bmi_category = "Underweight"
+                    elif 18.5 <= bmi_value < 25:
+                        bmi_category = "Normal weight"
+                    elif 25 <= bmi_value < 30:
+                        bmi_category = "Overweight"
+                    else:
+                        bmi_category = "Obese"
+                except ValueError:
+                    bmi_category = None
 
-
-            pred = predictDiabetes(values_tuple)
+            return render_template('predict.html', 
+                                pred=pred, 
+                                bmi=bmi_display, 
+                                bmi_category=bmi_category)
+                                
     except Exception as e:
-        print(e)
-        message = "Please enter valid data"
+        print(f"Error in prediction route: {str(e)}")  # Debug print
+        message = f"Error: {str(e)}"
         return render_template("home.html", message=message)
 
-    return render_template('predict.html', pred=pred)
+    return render_template('predict.html', pred=None)
 
 @app.route("/malariapredict", methods = ['POST', 'GET'])
 def malariapredictPage():

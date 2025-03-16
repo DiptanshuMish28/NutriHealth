@@ -1,4 +1,4 @@
-# Medibuddy: Smart Disease Predictor
+# Nutri-Health: Smart Disease Predictor
 
 ## Sample images of the web application
 
