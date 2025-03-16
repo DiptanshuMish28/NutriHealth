@@ -14,6 +14,17 @@ body {
     <div class="col-md-2"></div>
     <div class="col-md-8">
         <center><h1 style="color:white;">Heart Disease Predictor</h1></center>
+        
+        <!-- File Upload Section -->
+        <div class="card card-body" style="border: 1px solid black; background-color: #f0d0ff; margin-bottom: 20px;">
+            <h4>Upload Report (Optional)</h4>
+            <div id="uploadSection">
+                <input type="file" id="fileUpload" name="file" accept="image/*" required>
+                <button onclick="handleFileUpload()" class="btn btn-info btn-block" style="margin-top: 10px;">Extract Data</button>
+            </div>
+        </div>
+
+        <!-- Main Form -->
         <div class="card card-body" style="border: 1px solid black; background-color: #daa8f4">
             <form class="form-horizontal" action="{{ url_for('predictPage') }}" method="POST">
                 <div class="row">
@@ -91,7 +102,7 @@ body {
                     <div class="col-md-3"></div>
                     <div class="col-md-6">
                         <div class="form-group">
-                            <input style="border: 1px solid black; background-color: #f0d0ff" class="form-control" type="text" name="thal" placeholder="Thal: 1 = Normal; 2 = Fixed Defect; 3 = Reversible Defect">
+                            <input style="border: 1px solid black; background-color: #f0d0ff" class="form-control" type="text" name="thal" placeholder="Thal: 1 = Normal; 2 = Fixed Defect; 3 = Reversible Def">
                         </div>
                     </div>
                 </div>
@@ -139,5 +150,56 @@ function calculateBMI() {
 
 document.getElementById('height').addEventListener('input', calculateBMI);
 document.getElementById('weight').addEventListener('input', calculateBMI);
+
+// Updated file upload handling
+function populateFields(data) {
+    for (const [key, value] of Object.entries(data)) {
+        const field = document.querySelector(`[name="${key}"]`);
+        if (field && value !== "Not found") {
+            field.value = value;
+        }
+    }
+}
+
+function handleFileUpload() {
+    event.preventDefault();
+    const fileInput = document.getElementById("fileUpload");
+    if (!fileInput.files.length) {
+        alert("Please select a file first!");
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", fileInput.files[0]);
+
+    fetch("/upload", { 
+        method: "POST", 
+        body: formData,
+        headers: {
+            'X-Test-Type': 'heart'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.text().then(text => {
+                throw new Error(text);
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log("Received data:", data);
+        if (data.data) {
+            populateFields(data.data);
+            alert("Data extracted successfully!");
+        } else {
+            alert("Error: " + (data.error || "Invalid response format"));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert("Upload failed! " + error.message);
+    });
+}
 </script>
 {% endblock %}

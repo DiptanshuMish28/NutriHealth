@@ -1,11 +1,12 @@
 import os
-from flask import Flask, render_template, request, flash
+from flask import Flask, render_template, request, flash, jsonify
 import pickle
 import numpy as np
 from PIL import Image
 import tensorflow as tf
 from ocr import preprocess_image, extract_text_from_image, extract_medical_fields
 import joblib
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 #app.secret_key = 'your_secret_key_here'  # Required for flash messages
@@ -287,24 +288,104 @@ def malariapredictPage():
             return render_template('malaria.html', message=message)
     return render_template('malaria_predict.html', pred=pred)
 
-@app.route("/pneumoniapredict", methods = ['POST', 'GET'])
+@app.route("/pneumoniapredict", methods=['POST', 'GET'])
 def pneumoniapredictPage():
     if request.method == 'POST':
         try:
-            img = Image.open(request.files['image']).convert('L')
-            img.save("uploads/image.jpg")
-            img_path = os.path.join(os.path.dirname(__file__), 'uploads/image.jpg')
-            os.path.isfile(img_path)
-            img = tf.keras.utils.load_img(img_path, target_size=(128, 128))
-            img = tf.keras.utils.img_to_array(img)
-            img = np.expand_dims(img, axis=0)
+            if 'image' not in request.files:
+                return render_template('pneumonia.html', message="No file uploaded")
+            
+            file = request.files['image']
+            if file.filename == '':
+                return render_template('pneumonia.html', message="No file selected")
 
-            model = tf.keras.models.load_model("models/pneumonia.h5")
-            pred = np.argmax(model.predict(img))
-        except:
-            message = "Please upload an image"
-            return render_template('pneumonia.html', message=message)
-    return render_template('pneumonia_predict.html', pred=pred)
+            if file:
+                try:
+                    # Read image directly from the uploaded file
+                    img = Image.open(file.stream)
+                    
+                    # Print image details for debugging
+                    print(f"Original Image Size: {img.size}")
+                    print(f"Original Image Mode: {img.mode}")
+                    
+                    # Convert to RGB (3 channels)
+                    img = img.convert('RGB')
+                    
+                    # Resize image to 300x300 as expected by the model
+                    img = img.resize((300, 300))
+                    print(f"Resized Image Size: {img.size}")
+                    
+                    # Convert to numpy array
+                    img_array = np.array(img)
+                    print(f"Array Shape after conversion: {img_array.shape}")
+                    
+                    # Normalize and reshape
+                    img_array = img_array.astype('float32') / 255.0
+                    img_array = np.expand_dims(img_array, axis=0)  # Add batch dimension
+                    print(f"Final Array Shape: {img_array.shape}")
+
+                    # Load model and predict
+                    model = tf.keras.models.load_model("models/trained.h5")
+                    prediction = model.predict(img_array)
+                    pred = 1 if prediction[0][0] > 0.5 else 0
+                    
+                    print(f"Prediction value: {prediction[0][0]}")
+                    print(f"Final prediction: {pred}")
+                    
+                    return render_template('pneumonia_predict.html', pred=pred)
+                
+                except Exception as e:
+                    print(f"Error in image processing: {str(e)}")
+                    return render_template('pneumonia.html', 
+                                        message=f"Error processing image: {str(e)}")
+
+        except Exception as e:
+            print(f"Error in route: {str(e)}")
+            return render_template('pneumonia.html', message=f"Error: {str(e)}")
+
+    return render_template('pneumonia.html')
+
+@app.route("/upload", methods=['POST'])
+def upload_file():
+    try:
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file part'}), 400
+        
+        file = request.files['file']
+        test_type = request.headers.get('X-Test-Type', 'liver')
+        
+        if file.filename == '':
+            return jsonify({'error': 'No selected file'}), 400
+
+        if file:
+            # Save the uploaded image
+            image_path = os.path.join(UPLOAD_FOLDER, file.filename)
+            file.save(image_path)
+
+            try:
+                # Process the image
+                preprocessed_image = preprocess_image(image_path)
+                if preprocessed_image is not None:
+                    extracted_text = extract_text_from_image(preprocessed_image)
+                    if extracted_text:
+                        data = extract_medical_fields(extracted_text, test_type)
+                        return jsonify({
+                            'test_type': test_type.capitalize(),
+                            'data': data
+                        })
+                    else:
+                        return jsonify({'error': 'Could not extract text from image'}), 400
+                else:
+                    return jsonify({'error': 'Could not process image'}), 400
+
+            finally:
+                # Clean up the uploaded file
+                if os.path.exists(image_path):
+                    os.remove(image_path)
+
+    except Exception as e:
+        print(f"Error in upload: {str(e)}")  # Debug print
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug = True)

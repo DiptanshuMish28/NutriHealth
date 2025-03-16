@@ -1,11 +1,21 @@
+import os
 import pytesseract
-from PIL import Image, ImageEnhance, ImageFilter
+import cv2
 import re
+from flask import Flask, render_template, request, jsonify
+from werkzeug.utils import secure_filename
+from PIL import Image, ImageEnhance, ImageFilter
+import numpy as np
 
-# Path to Tesseract executable (if required)
-# pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+# Initialize Flask app
+app = Flask(__name__)
 
-# Step 1: Preprocess the image to improve OCR results
+# Define upload folder
+UPLOAD_FOLDER = "./uploads"
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
+
+# Image preprocessing function
 def preprocess_image(image_path):
     try:
         # Open the image file
@@ -28,21 +38,40 @@ def preprocess_image(image_path):
         print(f"Error processing image: {e}")
         return None
 
-# Step 2: Extract text from the preprocessed image
+# Extract text using OCR
 def extract_text_from_image(preprocessed_image):
     try:
         # Use pytesseract to extract text from the image
         extracted_text = pytesseract.image_to_string(preprocessed_image)
-
+        print("Extracted text:", extracted_text)  # Debug print
         return extracted_text
     except Exception as e:
         print(f"Error during OCR: {e}")
         return None
 
-# Step 3: Extract medical fields from the text using regular expressions
-def extract_medical_fields(extracted_text):
+# Regex-based extraction for Diabetes Test
+def extract_diabetes_fields(text):
     patterns = {
-        "Age": r"Age/Gender\s*:\s*(\d+)",
+        "Pregnancies": r"Pregnancies\s*[:\-\s]\s*(\d+)",
+        "Glucose": r"Glucose\s*[:\-\s]\s*([\d.]+)",
+        "BloodPressure": r"Blood Pressure\s*[:\-\s]\s*([\d.]+)",
+        "SkinThickness": r"Skin Thickness\s*[:\-\s]\s*([\d.]+)",
+        "Insulin": r"Insulin\s*[:\-\s]\s*([\d.]+)",
+        "BMI": r"BMI\s*[:\-\s]\s*([\d.]+)",
+        "DiabetesPedigreeFunction": r"Diabetes Pedigree Function\s*[:\-\s]\s*([\d.]+)",
+        "Age": r"Age\s*[:\-\s]\s*(\d+)"
+    }
+
+    extracted_values = {}
+    for field, pattern in patterns.items():
+        match = re.search(pattern, text, re.IGNORECASE)
+        extracted_values[field] = match.group(1) if match else ""
+
+    return extracted_values
+
+# Regex-based extraction for Liver Function Test (LFT)
+def extract_liver_fields(text):
+    patterns = {
         "Total_Bilirubin": r"TOTAL BILIRUBIN\s*([\d.]+)",
         "Direct_Bilirubin": r"DIRECT BILIRUBIN\s*([\d.]+)",
         "Alkaline_Phosphotase": r"ALKALINE PHOSPHATASE\s*([\d.]+)",
@@ -50,35 +79,211 @@ def extract_medical_fields(extracted_text):
         "Aspartate_Aminotransferase": r"SGOT\s*([\d.]+)",
         "Total_Protiens": r"TOTAL PROTEINS\s*([\d.]+)",
         "Albumin": r"ALBUMIN\s*([\d.]+)",
-        "Albumin_and_Globulin_Ratio": r"A/G RATIO\s*([\d.]+)"
+        "Albumin_and_Globulin_Ratio": r"A/G RATIO\s*([\d.]+)",
+        "Age": r"Age\s*[:\-\s]\s*(\d+)"
     }
 
     extracted_values = {}
     for field, pattern in patterns.items():
-        match = re.search(pattern, extracted_text)
-        extracted_values[field] = match.group(1) if match else "Not found"
+        match = re.search(pattern, text, re.IGNORECASE)
+        extracted_values[field] = match.group(1) if match else ""
 
     return extracted_values
 
-# Main execution
-if __name__ == "__main__":
-    # Step 1: Preprocess the image
-    image_path = "lft.jpg"
-    preprocessed_image = preprocess_image(image_path)
+# Identify test type based on extracted text
+def identify_test_type(text):
+    if "Glucose" in text or "Diabetes" in text or "BMI" in text:
+        return "Diabetes"
+    elif "Bilirubin" in text or "SGOT" in text or "Liver" in text:
+        return "Liver"
+    return "Unknown"
 
-    # Step 2: Perform OCR on the preprocessed image
+def extract_medical_fields(extracted_text, test_type='liver'):
+    if test_type == 'heart':
+        # Convert text to uppercase for consistent matching
+        extracted_text = extracted_text.upper()
+        
+        patterns = {
+            "age": r"AGE:\s*(\d+)",  # Matches "Age: 45"
+            "sex": r"SEX:\s*(MALE|FEMALE|M|F)",  # Matches "Sex: Male"
+            "cp": r"CHEST PAIN TYPE \(CP\):\s*(\d+)",  # Matches "Chest Pain Type (CP): 2"
+            "trestbps": r"RESTING BLOOD PRESSURE:\s*(\d+)\s*(?:MM HG)?",  # Matches "Resting Blood Pressure: 130 mm Hg"
+            "chol": r"SERUM CHOLESTEROL:\s*(\d+)\s*(?:MG/DL)?",  # Matches "Serum Cholesterol: 236 mg/dl"
+            "fbs": r"FASTING BLOOD SUGAR:\s*[>|<]?\s*(\d+)\s*(?:MG/DL)?",  # Matches "Fasting Blood Sugar: >120 mg/dl"
+            "restecg": r"RESTING ECG RESULTS:\s*(\d+)",  # Matches "Resting ECG Results: 1"
+            "thalach": r"MAXIMUM HEART RATE \(THALACH\):\s*(\d+)",  # Matches "Maximum Heart Rate (Thalach): 150"
+            "exang": r"EXERCISE INDUCED ANGINA:\s*(\d+)",  # Matches "Exercise Induced Angina: 0"
+            "oldpeak": r"ST DEPRESSION \(OLDPEAK\):\s*([\d.]+)",  # Matches "ST Depression (Oldpeak): 2.3"
+            "slope": r"SLOPE OF PEAK EXERCISE ST SEGMENT:\s*(\d+)",  # Matches "Slope of Peak Exercise ST Segment: 1"
+            "ca": r"NUMBER OF MAJOR VESSELS \(CA\):\s*(\d+)",  # Matches "Number of Major Vessels (CA): 2"
+            "thal": r"THALASSEMIA \(THAL\):\s*(\d+)"  # Matches "Thalassemia (Thal): 3"
+        }
+
+        extracted_values = {}
+        for field, pattern in patterns.items():
+            match = re.search(pattern, extracted_text)
+            if match:
+                value = match.group(1).strip()
+                
+                # Clean and validate each field
+                try:
+                    if field == 'sex':
+                        value = '1' if value in ['MALE', 'M'] else '0'
+                    elif field == 'fbs':
+                        # Extract number and check if >120
+                        num = int(re.search(r'\d+', value).group())
+                        value = '1' if num > 120 or '>120' in extracted_text else '0'
+                    elif field in ['cp', 'restecg', 'slope', 'ca', 'thal', 'exang']:
+                        value = str(int(value))
+                    elif field in ['trestbps', 'chol', 'thalach']:
+                        value = str(int(re.sub(r'[^\d]', '', value)))
+                    elif field == 'oldpeak':
+                        value = str(float(value))
+                    elif field == 'age':
+                        value = str(int(value))
+                    
+                    extracted_values[field] = value
+                except (ValueError, TypeError, AttributeError) as e:
+                    print(f"Error processing {field}: {e}")
+                    extracted_values[field] = "Not found"
+            else:
+                print(f"Pattern not found for {field}")
+                extracted_values[field] = "Not found"
+
+        # Debug print
+        print("Extracted text:", extracted_text)
+        print("Extracted values:", extracted_values)
+        
+        return extracted_values
+
+    elif test_type == 'liver':
+        patterns = {
+            "Age": r"Age/Gender\s*:\s*(\d+)",
+            "Total_Bilirubin": r"TOTAL BILIRUBIN\s*([\d.]+)",
+            "Direct_Bilirubin": r"DIRECT BILIRUBIN\s*([\d.]+)",
+            "Alkaline_Phosphotase": r"ALKALINE PHOSPHATASE\s*([\d.]+)",
+            "Alamine_Aminotransferase": r"SGPT\s*([\d.]+)",
+            "Aspartate_Aminotransferase": r"SGOT\s*([\d.]+)",
+            "Total_Protiens": r"TOTAL PROTEINS\s*([\d.]+)",
+            "Albumin": r"ALBUMIN\s*([\d.]+)",
+            "Albumin_and_Globulin_Ratio": r"A/G RATIO\s*([\d.]+)"
+        }
+    elif test_type == 'diabetes':
+        # Convert text to uppercase for consistent matching
+        extracted_text = extracted_text.upper()
+        
+        patterns = {
+            "Pregnancies": r"PREGNANCIES:\s*(\d+)",
+            "Glucose": r"GLUCOSE:\s*(\d+)(?:\s*MG/DL)?",
+            "BloodPressure": r"BLOOD PRESSURE:\s*(\d+)(?:\s*MM HG)?",
+            "SkinThickness": r"SKIN THICKNESS:\s*(\d+)(?:\s*MM)?",
+            "Insulin": r"INSULIN:\s*(\d+)(?:\s*[µU]/ML)?",
+            "BMI": r"BMI:\s*([\d.]+)",
+            "DiabetesPedigreeFunction": r"DIABETES PEDIGREE FUNCTION:\s*([\d.]+)",
+            "Age": r"AGE:\s*(\d+)(?:\s*YEARS)?"
+        }
+
+        extracted_values = {}
+        for field, pattern in patterns.items():
+            match = re.search(pattern, extracted_text)
+            if match:
+                value = match.group(1).strip()
+                
+                # Clean and validate each field
+                try:
+                    if field in ['Pregnancies', 'Age']:
+                        value = str(int(value))
+                    elif field in ['Glucose', 'BloodPressure', 'SkinThickness', 'Insulin']:
+                        value = str(int(re.sub(r'[^\d]', '', value)))
+                    elif field in ['BMI', 'DiabetesPedigreeFunction']:
+                        value = str(float(value))
+                    
+                    extracted_values[field] = value
+                except (ValueError, TypeError, AttributeError) as e:
+                    print(f"Error processing {field}: {e}")
+                    extracted_values[field] = "Not found"
+            else:
+                print(f"Pattern not found for {field}")
+                extracted_values[field] = "Not found"
+
+        # Debug print
+        print("Extracted text:", extracted_text)
+        print("Extracted values:", extracted_values)
+        
+        return extracted_values
+
+    extracted_values = {}
+    for field, pattern in patterns.items():
+        match = re.search(pattern, extracted_text, re.IGNORECASE)
+        if match:
+            value = match.group(1)
+            # Post-process specific fields
+            if test_type == 'heart':
+                if field == 'sex':
+                    value = '1' if value.lower() in ['male', 'm'] else '0'
+                elif field == 'fbs':
+                    value = '1' if '>120' in value else '0'
+            elif test_type == 'diabetes':
+                if field == 'Pregnancies':
+                    value = int(value)
+                elif field == 'Glucose':
+                    value = float(value)
+                elif field == 'BloodPressure':
+                    value = int(value)
+                elif field == 'SkinThickness':
+                    value = int(value)
+                elif field == 'Insulin':
+                    value = int(value)
+                elif field == 'BMI':
+                    value = float(value)
+                elif field == 'DiabetesPedigreeFunction':
+                    value = float(value)
+                elif field == 'Age':
+                    value = int(value)
+            extracted_values[field] = value
+        else:
+            extracted_values[field] = "Not found"
+
+    # Add empty Gender field for liver test
+    if test_type == 'liver':
+        extracted_values['Gender'] = ''
+
+    return extracted_values
+
+# Route to handle file upload and extraction
+@app.route('/upload', methods=['POST'])
+def upload():
+    if 'file' not in request.files:
+        return jsonify({"error": "No file uploaded"})
+
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"error": "No selected file"})
+
+    filename = secure_filename(file.filename)
+    file_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+    file.save(file_path)
+
+    preprocessed_image = preprocess_image(file_path)
     if preprocessed_image:
         extracted_text = extract_text_from_image(preprocessed_image)
-
-        # Step 3: Extract medical fields if OCR was successful
         if extracted_text:
-            medical_fields = extract_medical_fields(extracted_text)
+            test_type = identify_test_type(extracted_text)
+            if test_type == "Diabetes":
+                extracted_fields = extract_diabetes_fields(extracted_text)
+            elif test_type == "Liver":
+                extracted_fields = extract_liver_fields(extracted_text)
+            else:
+                return jsonify({"error": "Test type not recognized"})
 
-            print("Extracted Medical Information:")
-            for field, value in medical_fields.items():
-                print(f"{field}: {value}")
+            return jsonify({"test_type": test_type, "data": extracted_fields})
 
-            # Optionally save the extracted fields to a file
-            with open("extracted_medical_data.txt", "w") as text_file:
-                for field, value in medical_fields.items():
-                    text_file.write(f"{field}: {value}\n")      
+    return jsonify({"error": "Failed to extract data"})
+
+# Route to render the diabetes prediction page
+@app.route('/')
+def home():
+    return render_template('diabetes.html')  # Change as needed
+
+if __name__ == '__main__':
+    app.run(debug=True)
