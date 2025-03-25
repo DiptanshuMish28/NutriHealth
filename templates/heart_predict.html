@@ -1,0 +1,152 @@
+{% extends 'main.html' %}
+{% block content %}
+<style>
+    .risk-container {
+        position: relative;
+        width: 100%;
+        height: 40px;
+        margin: 20px 0;
+        background: linear-gradient(to right, #28a745, #ffc107, #dc3545);
+        border-radius: 20px;
+        border: 1px solid #ddd;
+    }
+
+    .risk-marker {
+        position: absolute;
+        top: -10px;
+        left: 0;
+        width: 20px;
+        height: 60px;
+        background-color: #000;
+        transform: translateX(-50%);
+        z-index: 1000;
+    }
+
+    .risk-labels {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 5px;
+        padding: 0 10px;
+    }
+
+    .risk-labels span {
+        font-size: 14px;
+        color: #333;
+        font-weight: bold;
+    }
+
+    .calorie-section {
+        background-color: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        border: 1px solid #dee2e6;
+    }
+
+    .recommendation-section {
+        border-left: 4px solid #dc3545;
+        padding-left: 15px;
+        margin-bottom: 15px;
+    }
+
+    .heart-specific {
+        background-color: #ffe6e6;
+        border: 1px solid #ffcccc;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+    }
+
+    .vital-stats {
+        background-color: #e6f3ff;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+    }
+
+    body {
+        font-family: Cambria;
+        height: 100%;
+        background-image: linear-gradient(#c1e1e5, #c1f3d0);
+        margin: 0;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+    }
+</style>
+
+<div class="container mt-4">
+    <div class="card card-body" style="border: 1px solid black; box-shadow: 0 0 10px black; background-color: #edc8ff">
+        <h2 class="text-danger mb-4">Heart Disease Risk Assessment</h2>
+
+        <!-- Prediction Result Section -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <h3 class="card-title">Prediction Result</h3>
+                <p class="card-text">{{ pred }}</p>
+                
+                <!-- Risk Level Bar -->
+                <div class="risk-container">
+                    <div class="risk-marker"></div>
+                    <div class="risk-labels">
+                        <span>Low Risk</span>
+                        <span>Moderate Risk</span>
+                        <span>High Risk</span>
+                    </div>
+                </div>
+                <!-- Debug output -->
+                <div class="text-muted small mt-2">
+                    Risk Percentage: {{ risk_percentage|default(0) }}%
+                </div>
+            </div>
+        </div>
+
+        <!-- Vital Statistics -->
+        <div class="vital-stats mb-4">
+            <h4>Your Health Metrics</h4>
+            {% if bmi %}
+            <p>BMI: {{ bmi }} ({{ bmi_category }})</p>
+            {% endif %}
+            <ul>
+                <li>Target Blood Pressure: Below 120/80 mmHg</li>
+                <li>Ideal Cholesterol: LDL < 100 mg/dL</li>
+                <li>Recommended Exercise: 150 minutes/week</li>
+            </ul>
+        </div>
+
+        <!-- Diet Recommendations -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <h4>Personalized Diet & Lifestyle Recommendations</h4>
+                {% if diet %}
+                    {% for item in diet %}
+                        <div class="recommendation-section">
+                            {{ item | replace('\n', '<br>') | safe }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="text-center mt-4">
+            <a href="/" class="btn btn-primary">Back to Home</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const riskPercentage = parseFloat("{{ risk_percentage|default(0) }}");
+        const riskMarker = document.querySelector('.risk-marker');
+        const riskContainer = document.querySelector('.risk-container');
+        
+        if (riskMarker && riskContainer) {
+            // Ensure the percentage is between 0 and 100
+            const percentage = Math.min(Math.max(riskPercentage, 0), 100);
+            console.log('Setting risk marker to:', percentage + '%');
+            riskMarker.style.left = percentage + '%';
+        } else {
+            console.error('Risk marker or container not found');
+        }
+    });
+</script>
+{% endblock %} 

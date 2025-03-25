@@ -1,127 +1,171 @@
 {% extends 'main.html' %}
 {% block content %}
+
 <style>
-body {
-    font-family: Cambria;
-    height: 100%;
-    background-image: linear-gradient(#c1e1e5, #c1f3d0);
-    margin: 0;
-    background-repeat: no-repeat;
-    background-attachment: fixed;
-}
-.result-card {
-    margin-top: 20px;
-    padding: 20px;
-    border-radius: 5px;
-    background-color: #daa8f4;
-    border: 1px solid black;
-}
-.bmi-section {
-    margin-top: 20px;
-    padding: 15px;
-    background-color: #f0d0ff;
-    border: 1px solid black;
-    border-radius: 5px;
-}
-.prediction-text {
-    font-size: 1.5em;
+    .risk-container {
+        margin: 20px 0;
+        padding: 20px;
+        background-color: #f8f9fa;
+        border-radius: 10px;
+    }
+    .risk-bar-container {
+        position: relative;
+        width: 100%;
+        margin: 20px 0;
+    }
+    .risk-bar {
+        width: 100%;
+        height: 20px;
+        background: linear-gradient(to right, 
+            #28a745 0%, /* Green for low risk */
+            #28a745 33%, 
+            #ffc107 33%, /* Yellow for moderate risk */
+            #ffc107 66%,
+            #dc3545 66%, /* Red for high risk */
+            #dc3545 100%
+        );
+        border-radius: 10px;
+        border: 1px solid #ddd;
+    }
+    .risk-marker {
+        position: absolute;
+        left: 0%;
+        top: -10px;
+        width: 4px;
+        height: 40px;
+        background-color: #000;
+        transform: translateX(-50%);
+    }
+    .risk-labels {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 10px;
+        color: #495057;
+        font-weight: 500;
+    }
+    .risk-value {
+        font-size: 1.2em;
     font-weight: bold;
+        margin-bottom: 10px;
+        color: #212529;
+    }
+    .recommendation-item {
     padding: 15px;
-    margin: 10px 0;
+        margin-bottom: 15px;
+        background-color: #f8f9fa;
+        border-left: 4px solid #007bff;
     border-radius: 5px;
-    text-align: center;
-}
-.high-risk {
-    color: #ffffff;
-    background-color: #dc3545;
-}
-.moderate-risk {
-    color: #ffffff;
-    background-color: #ffc107;
-}
-.low-risk {
-    color: #ffffff;
-    background-color: #28a745;
-}
-.no-risk {
-    color: #ffffff;
-    background-color: #17a2b8;
-}
-.risk-meter {
-    width: 100%;
-    height: 20px;
-    background-color: #e9ecef;
-    border-radius: 10px;
-    margin: 10px 0;
-    overflow: hidden;
-}
-.risk-level {
-    height: 100%;
-    transition: width 0.5s ease-in-out;
-}
-.detected {
-    color: #d9534f;
-    background-color: #f5d0d0;
-}
-.not-detected {
-    color: #5cb85c;
-    background-color: #d0f5d0;
+    }
+    .recommendation-item pre {
+        margin: 0;
+        white-space: pre-wrap;
+        font-family: inherit;
+        font-size: 1em;
+    }
+    .recommendation-section {
+        margin-bottom: 30px;
+    }
+    .calorie-section {
+        background-color: #e3f2fd;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        border: 1px solid #90caf9;
+    }
+    .calorie-details {
+        font-size: 1.1em;
+        line-height: 1.6;
+    }
+    .card {
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .card-title {
+        color: #2c3e50;
+        font-weight: bold;
+    }
+    .diet-section {
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        border-left: 4px solid #007bff;
 }
 </style>
 
-<div class="container">
-    <div class="row">
-        <div class="col-md-2"></div>
-        <div class="col-md-8">
-            <div class="result-card">
-                <h2 style="color: #4e0374; text-align: center;">Prediction Result</h2>
-                
-                {% set risk_level = '' %}
-                {% if 'High Risk' in pred %}
-                    {% set risk_level = 'high-risk' %}
-                {% elif 'Moderate Risk' in pred %}
-                    {% set risk_level = 'moderate-risk' %}
-                {% elif 'Low Risk' in pred %}
-                    {% set risk_level = 'low-risk' %}
-                {% else %}
-                    {% set risk_level = 'no-risk' %}
-                {% endif %}
+<div class="container mt-4">
+    <!-- Debug section - remove in production -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5>Debug Info:</h5>
+            <p>BMI: {{ bmi }}</p>
+            <p>Diet recommendations received: {{ diet|length }} items</p>
+        </div>
+    </div>
 
-                <div class="prediction-text {{ risk_level }}">
-                    {{ pred }}
+    <!-- Prediction Result Section -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h3 class="card-title">Prediction Result</h3>
+            <p class="card-text">{{ pred }}</p>
+            
+            <!-- Risk Level Bar -->
+            <div class="risk-container">
+                <div class="risk-value">Risk Assessment</div>
+                <div class="risk-bar-container">
+                    <div class="risk-bar"></div>
+                    <div class="risk-marker" style="left: {{ risk }}%;"></div>
+                </div>
+                <div class="risk-labels">
+                    <span>Low Risk (0-33%)</span>
+                    <span>Moderate Risk (34-66%)</span>
+                    <span>High Risk (67-100%)</span>
+                </div>
+            </div>
+        </div>
                 </div>
 
-                {% if 'Risk:' in pred or 'Risk -' in pred %}
-                    {% set risk_percentage = pred.split('Risk')[1].split('%')[0] | replace(':', '') | replace('-', '') | float %}
-                    <div class="risk-meter">
-                        <div class="risk-level {{ risk_level }}" style="width: {{ risk_percentage }}%"></div>
+    <!-- BMI Information Section -->
+    {% if bmi %}
+    <div class="card mb-4">
+        <div class="card-body">
+            <h4>BMI Information</h4>
+            <p>Your BMI: {{ bmi }}</p>
+            {% if bmi_category %}
+            <p>Category: {{ bmi_category }}</p>
+            {% endif %}
                     </div>
-                    <div class="risk-legend" style="text-align: center; margin-top: 10px;">
-                        <span style="color: #4e0374;">Risk Level: {{ risk_percentage }}%</span>
                     </div>
                 {% endif %}
                 
-                {% if bmi %}
-                <div class="bmi-section">
-                    <h4 style="color: #4e0374;">BMI Information</h4>
-                    <p><strong>Your BMI:</strong> {{ bmi }}</p>
-                    {% if bmi_category %}
-                    <p><strong>Category:</strong> {{ bmi_category }}</p>
-                    {% endif %}
-                    <div class="bmi-reference" style="font-size: 0.9em; color: #666;">
-                        <p><strong>BMI Categories:</strong></p>
-                        <ul>
-                            <li>Underweight: < 18.5</li>
-                            <li>Normal weight: 18.5–24.9</li>
-                            <li>Overweight: 25–29.9</li>
-                            <li>Obese: ≥ 30</li>
-                        </ul>
+    <!-- Calorie and Diet Recommendations Section -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h4 class="mb-4">Personalized Diet & Calorie Recommendations</h4>
+            
+            {% if diet %}
+                {% for item in diet %}
+                    <div class="recommendation-item mb-4">
+                        {% if "Daily Calorie Recommendation" in item %}
+                            <div class="calorie-section">
+                                <h5 class="text-primary mb-3">Calorie Guidelines</h5>
+                                {{ item | replace('\n', '<br>') | safe }}
                     </div>
+                        {% else %}
+                            <div class="diet-section">
+                                {{ item | replace('\n', '<br>') | safe }}
                 </div>
                 {% endif %}
             </div>
+                {% endfor %}
+            {% else %}
+                <p>No dietary recommendations available.</p>
+            {% endif %}
         </div>
-        <div class="col-md-2"></div>
     </div>
 </div>
+
+<div class="mt-4 text-center">
+    <a href="{{ url_for('home') }}" class="btn btn-primary">Back to Home</a>
+</div>
+
 {% endblock %}

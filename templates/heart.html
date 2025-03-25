@@ -27,6 +27,9 @@ body {
         <!-- Main Form -->
         <div class="card card-body" style="border: 1px solid black; background-color: #daa8f4">
             <form class="form-horizontal" action="{{ url_for('predictPage') }}" method="POST">
+                <!-- Hidden field for disease type -->
+                <input type="hidden" name="disease_type" value="Heart Disease">
+                
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group">

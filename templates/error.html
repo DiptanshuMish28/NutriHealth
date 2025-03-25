@@ -1,0 +1,55 @@
+{% extends 'main.html' %}
+{% block content %}
+<style>
+    .error-container {
+        max-width: 600px;
+        margin: 50px auto;
+        padding: 20px;
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    
+    .error-icon {
+        font-size: 48px;
+        color: #dc3545;
+        margin-bottom: 20px;
+    }
+    
+    .error-message {
+        color: #dc3545;
+        font-size: 18px;
+        margin-bottom: 20px;
+    }
+    
+    .back-button {
+        background-color: #007bff;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 5px;
+        text-decoration: none;
+        display: inline-block;
+    }
+    
+    .back-button:hover {
+        background-color: #0056b3;
+        color: white;
+        text-decoration: none;
+    }
+</style>
+
+<div class="container">
+    <div class="error-container text-center">
+        <div class="error-icon">
+            <i class="fas fa-exclamation-circle"></i>
+        </div>
+        <h2 class="mb-4">Oops! Something went wrong</h2>
+        <div class="error-message">
+            {{ error }}
+        </div>
+        <a href="/" class="back-button">
+            <i class="fas fa-home"></i> Back to Home
+        </a>
+    </div>
+</div>
+{% endblock %} 

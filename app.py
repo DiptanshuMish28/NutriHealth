@@ -7,6 +7,7 @@ import tensorflow as tf
 from ocr import preprocess_image, extract_text_from_image, extract_medical_fields
 import joblib
 from werkzeug.utils import secure_filename
+import traceback
 
 app = Flask(__name__)
 #app.secret_key = 'your_secret_key_here'  # Required for flash messages
@@ -14,132 +15,189 @@ app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)  # Ensure the uploads directory exists
 app.secret_key = 'your_secret_key_here'  # Required for flash messages
+
+def calculate_calories(bmi, gender, age, risk_level):
+    # Base calorie calculation using BMI ranges
+    if bmi < 18.5:  # Underweight
+        base_calories = 2500 if gender == 1 else 2000  # Higher calories for weight gain
+    elif bmi < 25:  # Normal weight
+        base_calories = 2200 if gender == 1 else 1800
+    elif bmi < 30:  # Overweight
+        base_calories = 2000 if gender == 1 else 1600
+    else:  # Obese
+        base_calories = 1800 if gender == 1 else 1400
+
+    # Age adjustment
+    if age > 50:
+        base_calories -= 200
+    elif age < 30:
+        base_calories += 100
+
+    # Risk level adjustment
+    if risk_level == 'High':
+        base_calories -= 300  # More restriction for high risk
+    elif risk_level == 'Moderate':
+        base_calories -= 200
+
+    return base_calories
+
+def get_diet_recommendation(disease, risk_level, bmi=None, gender=None, age=None):
+    recommendations = []
+    
+    # Calculate calories if all required parameters are provided
+    if all(v is not None for v in [bmi, gender, age]):
+        daily_calories = calculate_calories(bmi, gender, age, risk_level)
+        calorie_info = (
+            f"📊 Daily Calorie Recommendation: {daily_calories} calories\n"
+            f"• Breakfast: {int(daily_calories * 0.3)} calories\n"
+            f"• Lunch: {int(daily_calories * 0.35)} calories\n"
+            f"• Dinner: {int(daily_calories * 0.25)} calories\n"
+            f"• Snacks: {int(daily_calories * 0.1)} calories\n\n"
+            f"💡 Recommended Meal Timing:\n"
+            f"• Breakfast: 7:00-9:00 AM\n"
+            f"• Mid-morning snack: 10:30-11:00 AM\n"
+            f"• Lunch: 12:30-2:00 PM\n"
+            f"• Evening snack: 4:00-5:00 PM\n"
+            f"• Dinner: 7:00-8:00 PM"
+        )
+        recommendations.append(calorie_info)
+    
+    disease_recommendations = {
+        'Heart Disease': {
+            'High': [
+                "🫀 Cardiac Diet Guidelines:\n"
+                "• Limit daily sodium to 1,500-2,000mg\n"
+                "• Restrict saturated fats to less than 6% of daily calories\n"
+                "• Aim for 25-30g of fiber daily\n"
+                "• Keep cholesterol under 200mg daily",
+
+                "✅ Heart-Healthy Foods:\n"
+                "• Lean proteins: Fish (especially salmon, mackerel), skinless poultry\n"
+                "• Whole grains: Oats, quinoa, brown rice\n"
+                "• Vegetables: Leafy greens, broccoli, carrots\n"
+                "• Fruits: Berries, citrus fruits, apples\n"
+                "• Healthy fats: Olive oil, avocados, nuts\n\n"
+                "Sample Meals:\n"
+                "Breakfast: Oatmeal with berries and nuts\n"
+                "Lunch: Grilled fish with quinoa and vegetables\n"
+                "Dinner: Lean chicken breast with sweet potato",
+
+                "❌ Foods to Avoid:\n"
+                "• Processed meats (bacon, sausage)\n"
+                "• Full-fat dairy products\n"
+                "• Fried foods\n"
+                "• Foods high in sodium\n"
+                "• Sugary beverages and snacks",
+
+                "📊 Daily Monitoring:\n"
+                "• Blood pressure readings\n"
+                "• Salt intake tracking\n"
+                "• Physical activity (aim for 30 mins daily)\n"
+                "• Weight monitoring\n\n"
+                "Target Numbers:\n"
+                "• Blood Pressure: Below 120/80 mmHg\n"
+                "• Resting Heart Rate: 60-100 bpm\n"
+                "• Cholesterol: LDL < 100 mg/dL",
+
+                "🌿 Supplements (consult doctor):\n"
+                "• Omega-3: 1,000-2,000mg daily\n"
+                "• CoQ10: 100-200mg daily\n"
+                "• Magnesium: 400mg daily\n"
+                "• Vitamin D: 1,000-2,000 IU daily"
+            ],
+            'Moderate': [
+                "🫀 Modified Heart-Healthy Guidelines:\n"
+                "• Limit sodium to 2,000-2,300mg daily\n"
+                "• Keep saturated fats under 10% of daily calories\n"
+                "• Aim for 20-25g of fiber daily",
+
+                "✅ Recommended Foods:\n"
+                "• Fish twice weekly\n"
+                "• Daily servings of fruits and vegetables\n"
+                "• Whole grains\n"
+                "• Low-fat dairy products",
+
+                "❌ Foods to Limit:\n"
+                "• Red meat (limit to 1-2 times per week)\n"
+                "• Processed foods\n"
+                "• Added sugars\n"
+                "• High-sodium foods",
+
+                "📊 Monitoring:\n"
+                "• Regular blood pressure checks\n"
+                "• Weekly weight monitoring\n"
+                "• Physical activity tracking"
+            ],
+            'Low': [
+                "🫀 Preventive Diet Guidelines:\n"
+                "• Maintain a balanced diet\n"
+                "• Focus on portion control\n"
+                "• Include variety of foods",
+
+                "✅ Healthy Choices:\n"
+                "• Regular fish consumption\n"
+                "• Plenty of fruits and vegetables\n"
+                "• Whole grain options\n"
+                "• Healthy cooking methods",
+
+                "📊 General Monitoring:\n"
+                "• Annual health check-ups\n"
+                "• Regular exercise routine\n"
+                "• Stress management"
+            ]
+        }
+    }
+
+    # Add disease-specific recommendations
+    if disease in disease_recommendations and risk_level in disease_recommendations[disease]:
+        recommendations.extend(disease_recommendations[disease][risk_level])
+    
+    return recommendations if recommendations else ["Maintain a balanced diet and consult with a healthcare provider"]
+
 def predict(values, dic):
-    # diabetes
+    result = {}
+    
+    # Diabetes Prediction
     if len(values) == 8:
         try:
-            features = np.array([[
-                float(dic['Pregnancies']),
-                float(dic['Glucose']),
-                float(dic['BloodPressure']),
-                float(dic['SkinThickness']),
-                float(dic['Insulin']),
-                float(dic['BMI']),
-                float(dic['DiabetesPedigreeFunction']),
-                float(dic['Age'])
-            ]])
+            features = np.array([[float(dic[field]) for field in [
+                'Pregnancies', 'Glucose', 'BloodPressure', 'SkinThickness', 
+                'Insulin', 'BMI', 'DiabetesPedigreeFunction', 'Age']]])
 
             model = joblib.load('models/diabetes.pkl')
             prediction = model.predict(features)[0]
             prediction_proba = model.predict_proba(features)[0]
             risk_percentage = round(prediction_proba[1] * 100, 2)
 
-            if prediction == 1:
-                if risk_percentage > 75:
-                    return f"Diabetes Detected (High Risk - {risk_percentage}%)"
-                elif risk_percentage > 50:
-                    return f"Diabetes Detected (Moderate Risk - {risk_percentage}%)"
-                else:
-                    return f"Diabetes Detected (Low Risk - {risk_percentage}%)"
-            else:
-                return f"No Diabetes Detected (Risk: {risk_percentage}%)"
-
+            result['disease'] = 'Diabetes'
+            result['risk'] = risk_percentage
+            result['level'] = 'High' if risk_percentage > 75 else 'Moderate' if risk_percentage > 50 else 'Low'
+            result['message'] = f"Diabetes {'Detected' if prediction == 1 else 'Not Detected'} ({result['level']} Risk - {risk_percentage}%)"
         except Exception as e:
-            print(f"Error in diabetes prediction: {str(e)}")
             raise e
 
-    # breast_cancer
-    elif len(values) == 22:
-        model = pickle.load(open('models/breast_cancer.pkl','rb'))
-        values = np.asarray(values)
-        return model.predict(values.reshape(1, -1))[0]
-
-    # heart disease
-    elif len(values) == 13:
-        try:
-            features = np.array([[
-                float(dic['age']),
-                float(dic['sex']),
-                float(dic['cp']),
-                float(dic['trestbps']),
-                float(dic['chol']),
-                float(dic['fbs']),
-                float(dic['restecg']),
-                float(dic['thalach']),
-                float(dic['exang']),
-                float(dic['oldpeak']),
-                float(dic['slope']),
-                float(dic['ca']),
-                float(dic['thal'])
-            ]])
-
-            model = joblib.load('models/heart.pkl')
-            scaler = joblib.load('models/heart_scaler.pkl')
-            features_scaled = scaler.transform(features)
-            
-            prediction = model.predict(features_scaled)[0]
-            prediction_proba = model.predict_proba(features_scaled)[0]
-            risk_percentage = round(prediction_proba[1] * 100, 2)
-
-            if prediction == 1:
-                if risk_percentage > 75:
-                    return f"Heart Disease Detected (High Risk - {risk_percentage}%)"
-                elif risk_percentage > 50:
-                    return f"Heart Disease Detected (Moderate Risk - {risk_percentage}%)"
-                else:
-                    return f"Heart Disease Detected (Low Risk - {risk_percentage}%)"
-            else:
-                return f"No Heart Disease Detected (Risk: {risk_percentage}%)"
-
-        except Exception as e:
-            print(f"Error in heart disease prediction: {str(e)}")
-            raise e
-
-    # kidney disease
-    elif len(values) == 24:
-        model = pickle.load(open('models/kidney.pkl','rb'))
-        values = np.asarray(values)
-        return model.predict(values.reshape(1, -1))[0]
-
-    # liver disease
+    # Liver Disease Prediction
     elif len(values) == 10:
         try:
-            features = np.array([[
-                float(dic['Age']),
-                float(dic['Gender']),
-                float(dic['Total_Bilirubin']),
-                float(dic['Direct_Bilirubin']),
-                float(dic['Alkaline_Phosphotase']),
-                float(dic['Alamine_Aminotransferase']),
-                float(dic['Aspartate_Aminotransferase']),
-                float(dic['Total_Protiens']),
-                float(dic['Albumin']),
-                float(dic['Albumin_and_Globulin_Ratio'])
-            ]])
-
-            # Load model only
-            model = joblib.load('models/liver.pkl')
+            features = np.array([[float(dic[field]) for field in [
+                'Age', 'Gender', 'Total_Bilirubin', 'Direct_Bilirubin', 
+                'Alkaline_Phosphotase', 'Alamine_Aminotransferase', 
+                'Aspartate_Aminotransferase', 'Total_Protiens', 
+                'Albumin', 'Albumin_and_Globulin_Ratio']]])
             
-            # Make prediction directly without scaling
+            model = joblib.load('models/liver.pkl')
             prediction = model.predict(features)[0]
             prediction_proba = model.predict_proba(features)[0]
             risk_percentage = round(prediction_proba[1] * 100, 2)
 
-            if prediction == 1:
-                if risk_percentage > 75:
-                    return f"Liver Disease Detected (High Risk - {risk_percentage}%)"
-                elif risk_percentage > 50:
-                    return f"Liver Disease Detected (Moderate Risk - {risk_percentage}%)"
-                else:
-                    return f"Liver Disease Detected (Low Risk - {risk_percentage}%)"
-            else:
-                return f"No Liver Disease Detected (Risk: {risk_percentage}%)"
-
+            result['disease'] = 'Liver Disease'
+            result['risk'] = risk_percentage
+            result['level'] = 'High' if risk_percentage > 75 else 'Moderate' if risk_percentage > 50 else 'Low'
+            result['message'] = f"Liver Disease {'Detected' if prediction == 1 else 'Not Detected'} ({result['level']} Risk - {risk_percentage}%)"
         except Exception as e:
-            print(f"Error in liver disease prediction: {str(e)}")
             raise e
 
-    return "Error: Invalid input dimensions"
+    return result
 
 @app.route("/")
 def home():
@@ -214,60 +272,76 @@ def predictPage():
         if request.method == 'POST':
             to_predict_dict = request.form.to_dict()
             
-            # Extract BMI display value
+            # Extract BMI and other values
             bmi_display = to_predict_dict.get('bmi_display', None)
-            
-            # Remove any non-prediction fields
-            if 'bmi_display' in to_predict_dict:
-                del to_predict_dict['bmi_display']
-            if 'height' in to_predict_dict:
-                del to_predict_dict['height']
-            if 'weight' in to_predict_dict:
-                del to_predict_dict['weight']
+            gender = float(to_predict_dict.get('Gender', to_predict_dict.get('sex', 0)))
+            age = float(to_predict_dict.get('Age', to_predict_dict.get('age', 0)))
+            disease_type = to_predict_dict.get('disease_type', '')  # Store disease_type
 
-            print("Form data:", to_predict_dict)  # Debug print
+            # Remove non-prediction fields
+            prediction_dict = to_predict_dict.copy()  # Create a copy for prediction
+            for field in ['bmi_display', 'height', 'weight', 'disease_type']:
+                if field in prediction_dict:
+                    del prediction_dict[field]
 
-            # Convert values to float
-            for key, value in to_predict_dict.items():
+            # Convert values and predict
+            for key, value in prediction_dict.items():
                 try:
-                    to_predict_dict[key] = float(value)
-                except ValueError as e:
-                    print(f"Error converting {key}: {value}")
-                    raise ValueError(f"Invalid value for {key}: {value}")
+                    prediction_dict[key] = float(value)
+                except ValueError:
+                    return render_template("home.html", message=f"Invalid value for {key}: {value}")
 
-            to_predict_list = list(map(float, list(to_predict_dict.values())))
-            
-            print("Prediction input list:", to_predict_list)  # Debug print
-            
-            pred = predict(to_predict_list, to_predict_dict)
-            
-            # Calculate BMI category if BMI is available
+            to_predict_list = list(map(float, list(prediction_dict.values())))
+            prediction_result = predict(to_predict_list, prediction_dict)
+
+            # Calculate BMI category
             bmi_category = None
+            bmi_value = None
             if bmi_display:
                 try:
                     bmi_value = float(bmi_display)
                     if bmi_value < 18.5:
                         bmi_category = "Underweight"
-                    elif 18.5 <= bmi_value < 25:
+                    elif bmi_value < 25:
                         bmi_category = "Normal weight"
-                    elif 25 <= bmi_value < 30:
+                    elif bmi_value < 30:
                         bmi_category = "Overweight"
                     else:
                         bmi_category = "Obese"
                 except ValueError:
                     bmi_category = None
 
-            return render_template('predict.html', 
-                                pred=pred, 
-                                bmi=bmi_display, 
-                                bmi_category=bmi_category)
-                                
-    except Exception as e:
-        print(f"Error in prediction route: {str(e)}")  # Debug print
-        message = f"Error: {str(e)}"
-        return render_template("home.html", message=message)
+            # Get diet recommendation
+            diet_recommendation = get_diet_recommendation(
+                disease_type,  # Use stored disease_type
+                prediction_result.get('level', 'Low'),
+                bmi_value,
+                gender,
+                age
+            )
 
-    return render_template('predict.html', pred=None)
+            # Select template based on disease type
+            template = 'predict.html'  # default template
+            if 'heart' in disease_type.lower():
+                template = 'heart_predict.html'
+            elif 'liver' in disease_type.lower():
+                template = 'liver_predict.html'
+            elif 'diabetes' in disease_type.lower():
+                template = 'diabetes_predict.html'
+
+            return render_template(template,
+                                pred=prediction_result.get('message', ''),
+                                diet=diet_recommendation,
+                                bmi=bmi_display,
+                                bmi_category=bmi_category,
+                                risk_percentage=prediction_result.get('risk', 0))
+
+    except Exception as e:
+        print(f"Error in prediction route: {str(e)}")
+        traceback.print_exc()
+        return render_template("home.html", message=f"Error: {str(e)}")
+
+    return render_template('home.html')
 
 @app.route("/malariapredict", methods = ['POST', 'GET'])
 def malariapredictPage():
@@ -290,58 +364,40 @@ def malariapredictPage():
 
 @app.route("/pneumoniapredict", methods=['POST', 'GET'])
 def pneumoniapredictPage():
-    if request.method == 'POST':
-        try:
+    try:
+        if request.method == 'POST':
             if 'image' not in request.files:
-                return render_template('pneumonia.html', message="No file uploaded")
+                return render_template('pneumonia.html', message='No file selected')
             
             file = request.files['image']
             if file.filename == '':
-                return render_template('pneumonia.html', message="No file selected")
+                return render_template('pneumonia.html', message='No file selected')
 
-            if file:
-                try:
-                    # Read image directly from the uploaded file
-                    img = Image.open(file.stream)
-                    
-                    # Print image details for debugging
-                    print(f"Original Image Size: {img.size}")
-                    print(f"Original Image Mode: {img.mode}")
-                    
-                    # Convert to RGB (3 channels)
-                    img = img.convert('RGB')
-                    
-                    # Resize image to 300x300 as expected by the model
-                    img = img.resize((300, 300))
-                    print(f"Resized Image Size: {img.size}")
-                    
-                    # Convert to numpy array
-                    img_array = np.array(img)
-                    print(f"Array Shape after conversion: {img_array.shape}")
-                    
-                    # Normalize and reshape
-                    img_array = img_array.astype('float32') / 255.0
-                    img_array = np.expand_dims(img_array, axis=0)  # Add batch dimension
-                    print(f"Final Array Shape: {img_array.shape}")
-
-                    # Load model and predict
-                    model = tf.keras.models.load_model("models/trained.h5")
-                    prediction = model.predict(img_array)
-                    pred = 1 if prediction[0][0] > 0.5 else 0
-                    
-                    print(f"Prediction value: {prediction[0][0]}")
-                    print(f"Final prediction: {pred}")
-                    
-                    return render_template('pneumonia_predict.html', pred=pred)
+            # Process image and get prediction
+            try:
+                image = Image.open(file.stream)
+                image = image.convert('RGB')  # Convert to RGB
+                image = image.resize((300, 300))  # Resize to match model's expected input
                 
-                except Exception as e:
-                    print(f"Error in image processing: {str(e)}")
-                    return render_template('pneumonia.html', 
-                                        message=f"Error processing image: {str(e)}")
+                # Convert to numpy array and normalize
+                img_array = np.array(image)
+                img_array = img_array / 255.0
+                img_array = np.expand_dims(img_array, axis=0)  # Add batch dimension
 
-        except Exception as e:
-            print(f"Error in route: {str(e)}")
-            return render_template('pneumonia.html', message=f"Error: {str(e)}")
+                # Load model and predict
+                model = tf.keras.models.load_model("models/trained.h5")
+                pred = model.predict(img_array)
+                pred = "Pneumonia Detected" if pred[0][0] > 0.5 else "Normal"
+                
+                return render_template('pneumonia_predict.html', pred=pred)
+                
+            except Exception as e:
+                print(f"Error processing image: {str(e)}")
+                return render_template('pneumonia.html', message=f'Error processing image: {str(e)}')
+
+    except Exception as e:
+        print(f"Error in prediction route: {str(e)}")
+        return render_template('pneumonia.html', message=f'Error: {str(e)}')
 
     return render_template('pneumonia.html')
 
@@ -386,6 +442,194 @@ def upload_file():
     except Exception as e:
         print(f"Error in upload: {str(e)}")  # Debug print
         return jsonify({'error': str(e)}), 500
+
+@app.route("/heartpredict", methods=['POST', 'GET'])
+def heartpredictPage():
+    try:
+        if request.method == 'POST':
+            to_predict_dict = request.form.to_dict()
+            
+            # Extract BMI and other values
+            bmi_display = to_predict_dict.get('bmi_display', None)
+            gender = float(to_predict_dict.get('Gender', to_predict_dict.get('sex', 0)))
+            age = float(to_predict_dict.get('Age', to_predict_dict.get('age', 0)))
+
+            # Remove non-prediction fields
+            if 'bmi_display' in to_predict_dict:
+                del to_predict_dict['bmi_display']
+            if 'height' in to_predict_dict:
+                del to_predict_dict['height']
+            if 'weight' in to_predict_dict:
+                del to_predict_dict['weight']
+
+            # Convert values and predict
+            for key, value in to_predict_dict.items():
+                try:
+                    to_predict_dict[key] = float(value)
+                except ValueError:
+                    return render_template("home.html", message=f"Invalid value for {key}: {value}")
+
+            to_predict_list = list(map(float, list(to_predict_dict.values())))
+            
+            # Make prediction
+            prediction = heart_model.predict([to_predict_list])
+            probability = heart_model.predict_proba([to_predict_list])
+            
+            # Calculate risk level and percentage
+            risk_percentage = probability[0][1] * 100
+            if risk_percentage > 70:
+                risk_level = 'High'
+            elif risk_percentage > 30:
+                risk_level = 'Moderate'
+            else:
+                risk_level = 'Low'
+
+            prediction_result = {
+                'disease': 'Heart Disease',
+                'prediction': bool(prediction[0]),
+                'probability': risk_percentage,
+                'level': risk_level,
+                'message': f"Risk of Heart Disease: {risk_percentage:.1f}%"
+            }
+
+            # Calculate BMI category
+            bmi_category = None
+            bmi_value = None
+            if bmi_display:
+                try:
+                    bmi_value = float(bmi_display)
+                    if bmi_value < 18.5:
+                        bmi_category = "Underweight"
+                    elif bmi_value < 25:
+                        bmi_category = "Normal weight"
+                    elif bmi_value < 30:
+                        bmi_category = "Overweight"
+                    else:
+                        bmi_category = "Obese"
+                except ValueError:
+                    bmi_category = None
+
+            # Get diet recommendation
+            diet_recommendation = get_diet_recommendation(
+                'Heart Disease',
+                risk_level,
+                bmi_value,
+                gender,
+                age
+            )
+
+            return render_template('heart_predict.html', 
+                                 pred=prediction_result['message'],
+                                 diet=diet_recommendation,
+                                 bmi=bmi_display,
+                                 bmi_category=bmi_category,
+                                 risk_percentage=risk_percentage)
+
+    except Exception as e:
+        print(f"Error in heart prediction route: {str(e)}")
+        traceback.print_exc()
+        return render_template("home.html", message=f"Error: {str(e)}")
+
+    return render_template('home.html')  # Changed to return to home.html
+
+@app.route("/liverpredict", methods=['POST', 'GET'])
+def liverpredictPage():
+    try:
+        if request.method == 'POST':
+            to_predict_dict = request.form.to_dict()
+            
+            # Extract BMI and other values
+            bmi_display = to_predict_dict.get('bmi_display', None)
+            gender = float(to_predict_dict.get('Gender', to_predict_dict.get('sex', 0)))
+            age = float(to_predict_dict.get('Age', to_predict_dict.get('age', 0)))
+
+            # Remove non-prediction fields
+            if 'bmi_display' in to_predict_dict:
+                del to_predict_dict['bmi_display']
+            if 'height' in to_predict_dict:
+                del to_predict_dict['height']
+            if 'weight' in to_predict_dict:
+                del to_predict_dict['weight']
+
+            # Convert values and predict
+            for key, value in to_predict_dict.items():
+                try:
+                    to_predict_dict[key] = float(value)
+                except ValueError:
+                    return render_template("home.html", message=f"Invalid value for {key}: {value}")
+
+            to_predict_list = list(map(float, list(to_predict_dict.values())))
+            
+            # Make prediction
+            prediction = liver_model.predict([to_predict_list])
+            probability = liver_model.predict_proba([to_predict_list])
+            
+            # Calculate risk level and percentage
+            risk_percentage = probability[0][1] * 100
+            if risk_percentage > 70:
+                risk_level = 'High'
+            elif risk_percentage > 30:
+                risk_level = 'Moderate'
+            else:
+                risk_level = 'Low'
+
+            prediction_result = {
+                'disease': 'Liver Disease',
+                'prediction': bool(prediction[0]),
+                'probability': risk_percentage,
+                'level': risk_level,
+                'message': f"Risk of Liver Disease: {risk_percentage:.1f}%"
+            }
+
+            # Calculate BMI category
+            bmi_category = None
+            bmi_value = None
+            if bmi_display:
+                try:
+                    bmi_value = float(bmi_display)
+                    if bmi_value < 18.5:
+                        bmi_category = "Underweight"
+                    elif bmi_value < 25:
+                        bmi_category = "Normal weight"
+                    elif bmi_value < 30:
+                        bmi_category = "Overweight"
+                    else:
+                        bmi_category = "Obese"
+                except ValueError:
+                    bmi_category = None
+
+            # Get diet recommendation
+            diet_recommendation = get_diet_recommendation(
+                'Liver Disease',
+                risk_level,
+                bmi_value,
+                gender,
+                age
+            )
+
+            return render_template('liver_predict.html', 
+                                 pred=prediction_result['message'],
+                                 diet=diet_recommendation,
+                                 bmi=bmi_display,
+                                 bmi_category=bmi_category,
+                                 risk_percentage=risk_percentage)
+
+    except Exception as e:
+        print(f"Error in liver prediction route: {str(e)}")
+        traceback.print_exc()
+        return render_template("home.html", message=f"Error: {str(e)}")
+
+    return render_template('home.html')  # Changed to return to home.html
+
+@app.route("/diabetespredict", methods=['POST', 'GET'])
+def diabetespredictPage():
+    # ... existing code ...
+    return render_template('diabetes_predict.html', 
+                         pred=prediction_result['message'],
+                         diet=diet_recommendation,
+                         bmi=bmi_display,
+                         bmi_category=bmi_category,
+                         risk_percentage=risk_percentage)
 
 if __name__ == '__main__':
     app.run(debug = True)
