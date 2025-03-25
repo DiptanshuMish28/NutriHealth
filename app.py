@@ -63,6 +63,252 @@ def get_diet_recommendation(disease, risk_level, bmi=None, gender=None, age=None
         recommendations.append(calorie_info)
     
     disease_recommendations = {
+        'Liver Disease': {
+            'High': [
+                "🍽️ Liver-Healthy Macronutrient Distribution:\n"
+                "• Protein: 20-25% of daily calories\n"
+                "• Complex Carbohydrates: 45-50% of daily calories\n"
+                "• Healthy Fats: 25-30% of daily calories\n"
+                "• Fiber: 25-30g daily\n\n"
+                "Target Daily Intake:\n"
+                f"• Protein: {int(daily_calories * 0.25 / 4)}g\n"
+                f"• Carbohydrates: {int(daily_calories * 0.5 / 4)}g\n"
+                f"• Healthy Fats: {int(daily_calories * 0.25 / 9)}g",
+
+                "✅ Liver-Healthy Foods:\n"
+                "• Lean Proteins:\n"
+                "  - Fish (salmon, mackerel, sardines)\n"
+                "  - Skinless poultry\n"
+                "  - Plant-based proteins (tofu, tempeh)\n"
+                "• Complex Carbohydrates:\n"
+                "  - Whole grains (quinoa, brown rice, oats)\n"
+                "  - Legumes (lentils, chickpeas)\n"
+                "  - Non-starchy vegetables\n"
+                "• Liver-Supporting Foods:\n"
+                "  - Leafy greens (spinach, kale)\n"
+                "  - Cruciferous vegetables (broccoli, cauliflower)\n"
+                "  - Garlic and onions\n"
+                "  - Berries and citrus fruits\n"
+                "• Healthy Fats:\n"
+                "  - Avocados\n"
+                "  - Nuts and seeds\n"
+                "  - Olive oil\n"
+                "  - Fatty fish",
+
+                "❌ Foods to Avoid:\n"
+                "• Alcohol and alcoholic beverages\n"
+                "• Processed and fried foods\n"
+                "• High-sodium foods\n"
+                "• Red meat and processed meats\n"
+                "• Sugary beverages and desserts\n"
+                "• Raw or undercooked shellfish\n"
+                "• Foods high in saturated fats\n"
+                "• Artificial sweeteners",
+
+                "📊 Liver Health Monitoring:\n"
+                "• Regular liver function tests\n"
+                "• Monitor weight and BMI\n"
+                "• Track fluid retention\n"
+                "• Check for jaundice or abdominal swelling\n\n"
+                "Target Numbers:\n"
+                "• ALT: Below 40 U/L\n"
+                "• AST: Below 40 U/L\n"
+                "• Bilirubin: Below 1.2 mg/dL\n"
+                "• Albumin: 3.5-5.0 g/dL",
+
+                "🌿 Liver-Supporting Supplements (consult doctor):\n"
+                "• Milk Thistle: 200-400mg daily\n"
+                "• Vitamin D: 1,000-2,000 IU daily\n"
+                "• Vitamin E: 400 IU daily\n"
+                "• Zinc: 15-30mg daily\n"
+                "• N-acetyl cysteine: 600-1,200mg daily",
+
+                "💧 Hydration Guidelines:\n"
+                "• Drink 8-10 glasses of water daily\n"
+                "• Limit caffeine to 2-3 cups\n"
+                "• Avoid sugary drinks\n"
+                "• Monitor fluid retention\n"
+                "• Consider electrolyte balance",
+
+                "🏃‍♂️ Exercise Recommendations:\n"
+                "• Moderate aerobic exercise: 30-45 mins daily\n"
+                "• Strength training: 2-3 times weekly\n"
+                "• Avoid high-impact activities\n"
+                "• Listen to body signals\n"
+                "• Stay hydrated during exercise",
+
+                "⚠️ Lifestyle Modifications:\n"
+                "• Complete alcohol abstinence\n"
+                "• Regular sleep schedule (7-8 hours)\n"
+                "• Stress management techniques\n"
+                "• Regular medical check-ups\n"
+                "• Avoid exposure to toxins\n"
+                "• Practice good hygiene\n"
+                "• Get recommended vaccinations"
+            ],
+            'Moderate': [
+                "🍽️ Balanced Liver-Healthy Diet:\n"
+                "• Protein: 20% of daily calories\n"
+                "• Complex Carbohydrates: 50-55% of daily calories\n"
+                "• Healthy Fats: 25-30% of daily calories\n"
+                "• Fiber: 20-25g daily",
+
+                "✅ Recommended Foods:\n"
+                "• Lean proteins (fish, poultry)\n"
+                "• Whole grains and legumes\n"
+                "• Fresh fruits and vegetables\n"
+                "• Healthy fats (avocados, nuts)\n"
+                "• Liver-supporting foods (leafy greens, garlic)",
+
+                "❌ Foods to Limit:\n"
+                "• Alcohol (strictly limit or avoid)\n"
+                "• Processed foods\n"
+                "• High-sodium foods\n"
+                "• Red meat\n"
+                "• Sugary foods and drinks",
+
+                "📊 Monitoring:\n"
+                "• Regular liver function tests\n"
+                "• Weight monitoring\n"
+                "• Physical activity tracking\n"
+                "• Sleep quality assessment",
+
+                "🌿 General Health Support:\n"
+                "• Stay hydrated\n"
+                "• Regular exercise\n"
+                "• Stress management\n"
+                "• Adequate sleep\n"
+                "• Regular medical check-ups"
+            ],
+            'Low': [
+                "🍽️ Preventive Liver Health Guidelines:\n"
+                "• Balanced macronutrient distribution\n"
+                "• Focus on whole foods\n"
+                "• Regular meal timing\n"
+                "• Portion control",
+
+                "✅ Healthy Choices:\n"
+                "• Lean proteins\n"
+                "• Whole grains\n"
+                "• Fresh produce\n"
+                "• Healthy fats\n"
+                "• Liver-supporting foods",
+
+                "❌ Foods to Avoid:\n"
+                "• Excessive alcohol\n"
+                "• Processed foods\n"
+                "• High-sodium foods\n"
+                "• Sugary beverages",
+
+                "📊 General Monitoring:\n"
+                "• Annual health check-ups\n"
+                "• Regular exercise routine\n"
+                "• Stress management\n"
+                "• Sleep hygiene"
+            ]
+        },
+        'Diabetes': {
+            'High': [
+                "🍽️ Macronutrient Distribution:\n"
+                "• Carbohydrates: 45-50% of daily calories\n"
+                "• Protein: 20-25% of daily calories\n"
+                "• Healthy Fats: 25-30% of daily calories\n"
+                "• Fiber: 25-30g daily\n\n"
+                "Target Daily Intake:\n"
+                f"• Carbohydrates: {int(daily_calories * 0.5 / 4)}g\n"
+                f"• Protein: {int(daily_calories * 0.25 / 4)}g\n"
+                f"• Healthy Fats: {int(daily_calories * 0.25 / 9)}g",
+
+                "✅ Recommended Foods:\n"
+                "• Complex Carbohydrates:\n"
+                "  - Whole grains (quinoa, brown rice, oats)\n"
+                "  - Legumes (lentils, chickpeas, black beans)\n"
+                "  - Non-starchy vegetables\n"
+                "• Lean Proteins:\n"
+                "  - Fish (salmon, tuna, mackerel)\n"
+                "  - Skinless poultry\n"
+                "  - Plant-based proteins (tofu, tempeh)\n"
+                "• Healthy Fats:\n"
+                "  - Avocados\n"
+                "  - Nuts and seeds\n"
+                "  - Olive oil\n"
+                "• Low-Glycemic Fruits:\n"
+                "  - Berries\n"
+                "  - Apples\n"
+                "  - Citrus fruits",
+
+                "❌ Foods to Avoid:\n"
+                "• Refined carbohydrates (white bread, pasta)\n"
+                "• Sugary beverages and desserts\n"
+                "• Processed foods\n"
+                "• High-sodium foods\n"
+                "• Trans fats and saturated fats",
+
+                "📊 Blood Sugar Management:\n"
+                "• Monitor blood sugar 4-6 times daily\n"
+                "• Keep a food diary\n"
+                "• Track carbohydrate intake\n"
+                "• Regular exercise (30-45 mins daily)\n\n"
+                "Target Numbers:\n"
+                "• Fasting Blood Sugar: 80-130 mg/dL\n"
+                "• Post-meal (2 hours): Below 180 mg/dL\n"
+                "• HbA1c: Below 7%",
+
+                "🌿 Supplements (consult doctor):\n"
+                "• Vitamin D: 1,000-2,000 IU daily\n"
+                "• Magnesium: 400mg daily\n"
+                "• Chromium: 200-400mcg daily\n"
+                "• Alpha-lipoic acid: 600-800mg daily",
+
+                "💧 Hydration Guidelines:\n"
+                "• Drink 8-10 glasses of water daily\n"
+                "• Limit caffeine to 2-3 cups\n"
+                "• Avoid sugary drinks\n"
+                "• Monitor fluid intake with exercise"
+            ],
+            'Moderate': [
+                "🍽️ Balanced Macronutrient Distribution:\n"
+                "• Carbohydrates: 50-55% of daily calories\n"
+                "• Protein: 20% of daily calories\n"
+                "• Healthy Fats: 25-30% of daily calories\n"
+                "• Fiber: 20-25g daily",
+
+                "✅ Recommended Foods:\n"
+                "• Whole grains and legumes\n"
+                "• Lean proteins\n"
+                "• Healthy fats\n"
+                "• Fresh fruits and vegetables",
+
+                "❌ Foods to Limit:\n"
+                "• Refined sugars\n"
+                "• Processed foods\n"
+                "• High-sodium foods\n"
+                "• Saturated fats",
+
+                "📊 Monitoring:\n"
+                "• Regular blood sugar checks\n"
+                "• Weekly weight monitoring\n"
+                "• Physical activity tracking"
+            ],
+            'Low': [
+                "🍽️ General Dietary Guidelines:\n"
+                "• Balanced macronutrient distribution\n"
+                "• Focus on whole foods\n"
+                "• Regular meal timing\n"
+                "• Portion control",
+
+                "✅ Healthy Choices:\n"
+                "• Whole grains\n"
+                "• Lean proteins\n"
+                "• Healthy fats\n"
+                "• Fresh produce",
+
+                "📊 General Monitoring:\n"
+                "• Annual health check-ups\n"
+                "• Regular exercise routine\n"
+                "• Stress management"
+            ]
+        },
         'Heart Disease': {
             'High': [
                 "🫀 Cardiac Diet Guidelines:\n"
