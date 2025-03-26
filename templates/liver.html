@@ -1,165 +1,426 @@
 {% extends 'main.html' %}
 {% block content %}
+
 <style>
-body {
-    font-family: Cambria;
-    height: 100%;
-    background-image: linear-gradient(#c1e1e5, #c1f3d0);
-    margin: 0;
-    background-repeat: no-repeat;
-    background-attachment: fixed;
-}
+    .input-form {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .form-section {
+        background-color: var(--card-bg);
+        border-radius: 15px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .form-section h4 {
+        color: var(--text-color);
+        margin-bottom: 1.5rem;
+        font-size: 1.25rem;
+    }
+
+    .form-control {
+        background-color: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.1);
+        color: var(--text-color);
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+    }
+
+    .form-control:focus {
+        background-color: rgba(255,255,255,0.1);
+        border-color: var(--secondary-color);
+        box-shadow: 0 0 0 2px rgba(0,166,81,0.25);
+        color: var(--text-color);
+    }
+
+    .form-control::placeholder {
+        color: rgba(255,255,255,0.5);
+    }
+
+    .form-group {
+        margin-bottom: 1.25rem;
+        position: relative;
+    }
+
+    .form-group label {
+        color: var(--text-color);
+        margin-bottom: 0.5rem;
+        display: block;
+        font-size: 0.9rem;
+        opacity: 0.8;
+    }
+
+    .input-group {
+        margin-bottom: 1.25rem;
+    }
+
+    .input-group-text {
+        background-color: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.1);
+        color: var(--text-color);
+    }
+
+    .btn-upload {
+        background-color: rgba(255,255,255,0.05);
+        border: 2px dashed rgba(255,255,255,0.2);
+        color: var(--text-color);
+        padding: 2rem;
+        border-radius: 10px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-bottom: 1rem;
+    }
+
+    .btn-upload:hover {
+        border-color: var(--secondary-color);
+        background-color: rgba(255,255,255,0.1);
+    }
+
+    .btn-upload i {
+        font-size: 2rem;
+        color: var(--secondary-color);
+        margin-bottom: 1rem;
+    }
+
+    .file-input {
+        display: none;
+    }
+
+    .btn-predict {
+        background-color: var(--secondary-color);
+        color: white;
+        padding: 1rem 2rem;
+        border-radius: 25px;
+        border: none;
+        font-weight: 500;
+        width: 100%;
+        transition: all 0.3s ease;
+    }
+
+    .btn-predict:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+
+    .form-hint {
+        color: var(--text-color);
+        opacity: 0.6;
+        font-size: 0.8rem;
+        margin-top: 0.25rem;
+    }
+
+    .radio-group {
+        display: flex;
+        gap: 1rem;
+        margin-top: 0.5rem;
+    }
+
+    .radio-option {
+        background-color: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 8px;
+        padding: 0.75rem 1.5rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        flex: 1;
+        text-align: center;
+    }
+
+    .radio-option:hover {
+        background-color: rgba(255,255,255,0.1);
+    }
+
+    .radio-option input[type="radio"] {
+        display: none;
+    }
+
+    .radio-option input[type="radio"]:checked + label {
+        color: var(--secondary-color);
+    }
+
+    .radio-option.selected {
+        border-color: var(--secondary-color);
+        background-color: rgba(0,166,81,0.1);
+    }
 </style>
-<div class="row" style="margin-bottom: 180px;">
-    <div class="col-md-2"></div>
-    <div class="col-md-8">
-        <h1 id="liver-disease-predictor" style="color:white;">Liver Disease Predictor</h1>
 
-        <div class="card card-body" style="border: 1px solid black; background-color: #daa8f4">
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    {% for category, message in messages %}
-                        <div class="alert alert-{{ category }}">{{ message }}</div>
-                    {% endfor %}
-                {% endif %}
-            {% endwith %}
-
-            <form method="POST" enctype="multipart/form-data">
-                <div class="form-group">
-                    <label for="image_file">Upload Image of Medical Report:</label>
-                    <input type="file" class="form-control-file" id="image_file" name="image_file" accept="image/*" required>
-                </div>
-                <button type="submit" class="btn btn-primary">Extract Data from Image</button>
+<div class="container py-4">
+    <div class="input-form">
+        <h2 class="text-center mb-4">
+            <i class="fas fa-liver me-2"></i>
+            Liver Disease Risk Assessment
+        </h2>
+        
+        <!-- Upload File Section -->
+        <div class="form-section">
+            <h4>
+                <i class="fas fa-upload me-2"></i>
+                Upload Medical Report
+            </h4>
+            <form id="uploadForm">
+                <label class="btn-upload d-block mb-3" for="fileUpload">
+                    <i class="fas fa-cloud-upload-alt d-block mb-2"></i>
+                    <span>Drop your file here or click to upload</span>
+                    <input type="file" id="fileUpload" name="file" accept="image/*" class="file-input" required>
+                </label>
+                <button type="submit" class="btn btn-predict">
+                    <i class="fas fa-magic me-2"></i>Extract Data
+                </button>
             </form>
+        </div>
 
-            <form action="{{ url_for('predictPage') }}" method="post" class="mt-4">
-                <!-- Hidden field for disease type -->
-                <input type="hidden" name="disease_type" value="Liver Disease">
+        <!-- Input Form -->
+        <div class="form-section">
+            <h4>
+                <i class="fas fa-clipboard-list me-2"></i>
+                Health Metrics
+            </h4>
+            <form id="liverForm" class="form-horizontal">
+                <input type="hidden" name="disease_type" value="Liver">
                 
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label for="Age">Age (in years):</label>
-                            <input type="number" class="form-control" id="Age" name="Age" value="{{ data.Age if data and data.Age != 'Not found' else '' }}" required>
+                            <label>Age (years)</label>
+                            <input class="form-control" type="number" name="Age" required>
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label for="Gender">Gender (0: Male; 1: Female):</label>
-                            <select class="form-select" id="Gender" name="Gender" required>
-                                <option value="1" {{ 'selected' if data and data.Gender == 1 else '' }}>Male</option>
-                                <option value="0" {{ 'selected' if data and data.Gender == 0 else '' }}>Female</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label for="Total_Bilirubin">Total Bilirubin (in mg/dL):</label>
-                            <input type="number" step="0.01" class="form-control" id="Total_Bilirubin" name="Total_Bilirubin" value="{{ data.Total_Bilirubin if data and data.Total_Bilirubin != 'Not found' else '' }}" required>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label for="Direct_Bilirubin">Direct Bilirubin (in mg/dL):</label>
-                            <input type="number" step="0.01" class="form-control" id="Direct_Bilirubin" name="Direct_Bilirubin" value="{{ data.Direct_Bilirubin if data and data.Direct_Bilirubin != 'Not found' else '' }}" required>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label for="Alkaline_Phosphotase">Alkaline Phosphatase (in IU/L):</label>
-                            <input type="number" class="form-control" id="Alkaline_Phosphotase" name="Alkaline_Phosphotase" value="{{ data.Alkaline_Phosphotase if data and data.Alkaline_Phosphotase != 'Not found' else '' }}" required>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label for="Alamine_Aminotransferase">Alamine Aminotransferase (in IU/L):</label>
-                            <input type="number" class="form-control" id="Alamine_Aminotransferase" name="Alamine_Aminotransferase" value="{{ data.Alamine_Aminotransferase if data and data.Alamine_Aminotransferase != 'Not found' else '' }}" required>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label for="Aspartate_Aminotransferase">Aspartate Aminotransferase (in IU/L):</label>
-                            <input type="number" class="form-control" id="Aspartate_Aminotransferase" name="Aspartate_Aminotransferase" value="{{ data.Aspartate_Aminotransferase if data and data.Aspartate_Aminotransferase != 'Not found' else '' }}" required>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label for="Total_Protiens">Total Proteins (in g/dL):</label>
-                            <input type="number" step="0.01" class="form-control" id="Total_Protiens" name="Total_Protiens" value="{{ data.Total_Protiens if data and data.Total_Protiens != 'Not found' else '' }}" required>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label for="Albumin">Albumin (in g/dL):</label>
-                            <input type="number" step="0.01" class="form-control" id="Albumin" name="Albumin" value="{{ data.Albumin if data and data.Albumin != 'Not found' else '' }}" required>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label for="Albumin_and_Globulin_Ratio">Albumin and Globulin Ratio:</label>
-                            <input type="number" step="0.01" class="form-control" id="Albumin_and_Globulin_Ratio" name="Albumin_and_Globulin_Ratio" value="{{ data.Albumin_and_Globulin_Ratio if data and data.Albumin_and_Globulin_Ratio != 'Not found' else '' }}" required>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bmi-section">
-                    <h4 class="bmi-title">BMI Calculator</h4>
-                    <div class="row bmi-inputs">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="height">Height (in cm):</label>
-                                <input type="number" step="0.01" class="form-control" id="height" placeholder="Height" data-only-display="true">
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="weight">Weight (in kg):</label>
-                                <input type="number" step="0.01" class="form-control" id="weight" placeholder="Weight" data-only-display="true">
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-12">
-                            <div class="form-group">
-                                <label for="bmi">BMI:</label>
-                                <input type="text" class="form-control" id="bmi" placeholder="BMI (calculated)" readonly>
-                                <input type="hidden" id="bmi_display" name="bmi_display">
+                            <label>Gender</label>
+                            <div class="radio-group">
+                                <div class="radio-option">
+                                    <input type="radio" id="male" name="Gender" value="Male" required>
+                                    <label for="male">Male</label>
+                                </div>
+                                <div class="radio-option">
+                                    <input type="radio" id="female" name="Gender" value="Female">
+                                    <label for="female">Female</label>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-                <button type="submit" class="btn btn-success">Submit for Prediction</button>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Total Bilirubin</label>
+                            <input class="form-control" type="number" step="0.01" name="Total_Bilirubin" required>
+                            <div class="form-hint">Normal range: 0.3-1.2 mg/dL</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Direct Bilirubin</label>
+                            <input class="form-control" type="number" step="0.01" name="Direct_Bilirubin" required>
+                            <div class="form-hint">Normal range: 0.0-0.3 mg/dL</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Alkaline Phosphatase</label>
+                            <input class="form-control" type="number" step="0.01" name="Alkaline_Phosphotase" required>
+                            <div class="form-hint">Normal range: 44-147 IU/L</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Alamine Aminotransferase</label>
+                            <input class="form-control" type="number" step="0.01" name="Alamine_Aminotransferase" required>
+                            <div class="form-hint">Normal range: 7-56 U/L</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Aspartate Aminotransferase</label>
+                            <input class="form-control" type="number" step="0.01" name="Aspartate_Aminotransferase" required>
+                            <div class="form-hint">Normal range: 10-40 U/L</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Total Proteins</label>
+                            <input class="form-control" type="number" step="0.01" name="Total_Protiens" required>
+                            <div class="form-hint">Normal range: 6.0-8.3 g/dL</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Albumin</label>
+                            <input class="form-control" type="number" step="0.01" name="Albumin" required>
+                            <div class="form-hint">Normal range: 3.5-5.0 g/dL</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Albumin/Globulin Ratio</label>
+                            <input class="form-control" type="number" step="0.01" name="Albumin_and_Globulin_Ratio" required>
+                            <div class="form-hint">Normal range: 1.1-2.5</div>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-predict mt-4">
+                    <i class="fas fa-calculator me-2"></i>Calculate Risk
+                </button>
             </form>
         </div>
     </div>
-    <div class="col-md-2"></div>
 </div>
-<script>
-function calculateBMI() {
-    const height = parseFloat(document.getElementById('height').value);
-    const weight = parseFloat(document.getElementById('weight').value);
-    
-    if (height && weight) {
-        const heightInMeters = height / 100;
-        const bmi = (weight / (heightInMeters * heightInMeters)).toFixed(2);
-        document.getElementById('bmi').value = bmi;
-        document.getElementById('bmi_display').value = bmi;
-    }
-}
 
-document.getElementById('height').addEventListener('input', calculateBMI);
-document.getElementById('weight').addEventListener('input', calculateBMI);
+<script>
+    // File upload preview
+    document.getElementById('fileUpload').addEventListener('change', function(e) {
+        const fileName = e.target.files[0]?.name;
+        if (fileName) {
+            const label = this.closest('.btn-upload').querySelector('span');
+            label.textContent = fileName;
+        }
+    });
+
+    // Radio button styling
+    document.querySelectorAll('.radio-option').forEach(option => {
+        option.addEventListener('click', function() {
+            const radio = this.querySelector('input[type="radio"]');
+            radio.checked = true;
+            
+            // Update selected state for the group
+            const groupOptions = this.closest('.radio-group').querySelectorAll('.radio-option');
+            groupOptions.forEach(opt => opt.classList.remove('selected'));
+            this.classList.add('selected');
+        });
+    });
+
+    // Populate fields with extracted OCR data
+    function populateFields(data) {
+        for (const [key, value] of Object.entries(data)) {
+            const field = document.querySelector(`[name="${key}"]`);
+            if (field && value !== "Not found") {
+                if (field.type === 'radio') {
+                    const radio = document.querySelector(`input[name="${key}"][value="${value}"]`);
+                    if (radio) {
+                        radio.checked = true;
+                        radio.closest('.radio-option').classList.add('selected');
+                    }
+                } else {
+                    field.value = value;
+                }
+            }
+        }
+    }
+
+    // Handle file upload and OCR extraction
+    document.getElementById("uploadForm").addEventListener("submit", function(event) {
+        event.preventDefault();
+        const fileInput = document.getElementById("fileUpload");
+        const formData = new FormData();
+        formData.append("file", fileInput.files[0]);
+
+        fetch("/upload", { 
+            method: "POST", 
+            body: formData,
+            headers: {
+                'X-Test-Type': 'liver'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.text().then(text => { throw new Error(text); });
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log("Received data:", data);
+            if (data.data) {
+                populateFields(data.data);
+                alert("Data extracted successfully!");
+            } else {
+                alert("Error: " + (data.error || "Invalid response format"));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert("Upload failed! " + error.message);
+        });
+    });
+
+    // Handle form submission
+    document.getElementById("liverForm").addEventListener("submit", function(event) {
+        event.preventDefault();
+        
+        // Get form data
+        const formData = new FormData(this);
+        
+        // Show loading state
+        const submitButton = this.querySelector('button[type="submit"]');
+        const originalText = submitButton.innerHTML;
+        submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Calculating...';
+        submitButton.disabled = true;
+
+        // Convert form data to JSON
+        const formDataObj = {};
+        formData.forEach((value, key) => {
+            // Handle numeric fields
+            if (['Age', 'Total_Bilirubin', 'Direct_Bilirubin', 'Alkaline_Phosphotase', 
+                 'Alamine_Aminotransferase', 'Aspartate_Aminotransferase', 
+                 'Total_Protiens', 'Albumin', 'Albumin_and_Globulin_Ratio'].includes(key)) {
+                formDataObj[key] = parseFloat(value);
+            } else {
+                formDataObj[key] = value;
+            }
+        });
+
+        // Send form data
+        fetch("{{ url_for('liverpredictPage') }}", {
+            method: "POST",
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify(formDataObj)
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.text().then(text => { throw new Error(text); });
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                // Store the data in sessionStorage
+                sessionStorage.setItem('predictionData', JSON.stringify(data));
+                // Redirect to results page with data
+                const encodedData = encodeURIComponent(JSON.stringify(data));
+                window.location.href = "{{ url_for('liverpredictPage') }}?results=true&data=" + encodedData;
+            } else {
+                alert("Error: " + (data.error || "Failed to calculate risk"));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert("Error: " + error.message);
+        })
+        .finally(() => {
+            // Reset button state
+            submitButton.innerHTML = originalText;
+            submitButton.disabled = false;
+        });
+    });
 </script>
+
 {% endblock %}

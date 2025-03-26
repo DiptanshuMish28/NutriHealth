@@ -4,81 +4,130 @@
     .risk-container {
         position: relative;
         width: 100%;
-        height: 40px;
-        margin: 20px 0;
-        background: linear-gradient(to right, #28a745, #ffc107, #dc3545);
-        border-radius: 20px;
+        height: 8px;
+        margin: 30px 0;
+        background: linear-gradient(to right, var(--success-color), #FFA500, #FF4444);
+        border-radius: 4px;
+        overflow: visible;
     }
 
     .risk-marker {
         position: absolute;
-        top: -10px;
-        left: 0;
-        width: 20px;
-        height: 60px;
-        background-color: #000;
-        transform: translateX(-50%);
+        top: 50%;
+        width: 16px;
+        height: 16px;
+        background-color: white;
+        border: 2px solid var(--secondary-color);
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     }
 
     .risk-labels {
         display: flex;
         justify-content: space-between;
-        margin-top: 5px;
+        margin-top: 15px;
+        color: var(--text-color);
+        font-size: 0.9rem;
+        opacity: 0.8;
     }
 
-    .risk-labels span {
-        font-size: 14px;
-        color: #333;
+    .metric-card {
+        background-color: var(--card-bg);
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        border: 1px solid rgba(255,255,255,0.1);
     }
 
-    .calorie-section {
-        background-color: #f8f9fa;
-        padding: 20px;
-        border-radius: 8px;
-        margin-bottom: 20px;
-        border: 1px solid #dee2e6;
+    .metric-value {
+        font-size: 2rem;
+        font-weight: 600;
+        color: var(--secondary-color);
+        margin-bottom: 0.5rem;
+    }
+
+    .metric-label {
+        color: var(--text-color);
+        opacity: 0.8;
+        font-size: 0.9rem;
     }
 
     .recommendation-section {
-        border-left: 4px solid #007bff;
-        padding-left: 15px;
-        margin-bottom: 15px;
+        border-left: 3px solid var(--secondary-color);
+        padding: 1rem 1.5rem;
+        margin: 1rem 0;
+        background-color: rgba(255,255,255,0.05);
+        border-radius: 0 8px 8px 0;
     }
 
-    .diabetes-specific {
-        background-color: #e6e6ff;
-        border: 1px solid #ccccff;
-        padding: 15px;
-        border-radius: 8px;
-        margin-bottom: 15px;
+    .health-metrics {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+        margin: 2rem 0;
     }
 
-    .glucose-stats {
-        background-color: #f2e6ff;
-        padding: 15px;
-        border-radius: 8px;
-        margin-bottom: 15px;
-    }
-
-    body {
-        font-family: Cambria;
-        height: 100%;
-        background-image: linear-gradient(#c1e1e5, #c1f3d0);
+    .guidelines-list {
+        list-style: none;
+        padding: 0;
         margin: 0;
-        background-repeat: no-repeat;
-        background-attachment: fixed;
+    }
+
+    .guidelines-list li {
+        padding: 0.75rem 0;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+        display: flex;
+        align-items: center;
+    }
+
+    .guidelines-list li:last-child {
+        border-bottom: none;
+    }
+
+    .guidelines-list li i {
+        color: var(--secondary-color);
+        margin-right: 1rem;
+    }
+
+    .result-badge {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        border-radius: 25px;
+        font-weight: 500;
+        margin-bottom: 1rem;
+    }
+
+    .result-badge.high-risk {
+        background-color: rgba(255,68,68,0.2);
+        color: #FF4444;
+    }
+
+    .result-badge.moderate-risk {
+        background-color: rgba(255,165,0,0.2);
+        color: #FFA500;
+    }
+
+    .result-badge.low-risk {
+        background-color: rgba(0,166,81,0.2);
+        color: var(--success-color);
     }
 </style>
 
-<div class="container mt-4">
-    <div class="card card-body" style="border: 1px solid black; box-shadow: 0 0 10px black; background-color: #edc8ff">
-        <h2 class="text-primary mb-4">Diabetes Risk Assessment</h2>
+<div class="container py-4">
+    <div class="card">
+        <div class="card-body">
+            <h2 class="mb-4">
+                <i class="fas fa-chart-line me-2"></i>
+                Diabetes Risk Assessment
+            </h2>
 
         <!-- Prediction Result Section -->
-        <div class="card mb-4">
-            <div class="card-body">
-                <h3 class="card-title">Prediction Result</h3>
-                <p class="card-text">{{ pred }}</p>
+            <div class="metric-card">
+                <h3 class="h5 mb-3">Prediction Result</h3>
+                <div class="result-badge {{ 'high-risk' if 'High' in pred else 'moderate-risk' if 'Moderate' in pred else 'low-risk' }}">
+                    {{ pred }}
+                </div>
                 
                 <!-- Risk Level Bar -->
                 <div class="risk-container">
@@ -87,38 +136,34 @@
                         <span>Low Risk</span>
                         <span>Moderate Risk</span>
                         <span>High Risk</span>
-                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Glucose Statistics -->
-        <div class="glucose-stats mb-4">
-            <h4>Your Health Metrics</h4>
+            <!-- Health Metrics -->
+            <div class="health-metrics">
             {% if bmi %}
-            <p>BMI: {{ bmi }} ({{ bmi_category }})</p>
+                <div class="metric-card">
+                    <div class="metric-value">{{ bmi }}</div>
+                    <div class="metric-label">BMI ({{ bmi_category }})</div>
+                </div>
             {% endif %}
-            <ul>
-                <li>Target Fasting Blood Sugar: 80-130 mg/dL</li>
-                <li>Post-meal (2 hours): Below 180 mg/dL</li>
-                <li>HbA1c Goal: Below 7%</li>
+                <div class="metric-card">
+                    <h4 class="h6 mb-3">Target Blood Sugar Levels</h4>
+                    <ul class="guidelines-list">
+                        <li><i class="fas fa-clock"></i>Fasting: 80-130 mg/dL</li>
+                        <li><i class="fas fa-utensils"></i>Post-meal (2h): Below 180 mg/dL</li>
+                        <li><i class="fas fa-chart-line"></i>HbA1c: Below 7%</li>
             </ul>
         </div>
-
-        <!-- Diabetes-Specific Recommendations -->
-        <div class="diabetes-specific mb-4">
-            <h4>Blood Sugar Guidelines</h4>
-            <ul>
-                <li>Target Fasting Blood Sugar: 80-130 mg/dL</li>
-                <li>Post-meal (2 hours): Below 180 mg/dL</li>
-                <li>HbA1c Goal: Below 7%</li>
-            </ul>
         </div>
 
         <!-- Diet Recommendations -->
-        <div class="card mb-4">
-            <div class="card-body">
-                <h4>Personalized Diet & Lifestyle Recommendations</h4>
+            <div class="metric-card">
+                <h4 class="h5 mb-3">
+                    <i class="fas fa-apple-alt me-2"></i>
+                    Personalized Recommendations
+                </h4>
                 {% if diet %}
                     {% for item in diet %}
                         <div class="recommendation-section">
@@ -126,11 +171,13 @@
                         </div>
                     {% endfor %}
                 {% endif %}
-            </div>
         </div>
 
         <div class="text-center mt-4">
-            <a href="/" class="btn btn-primary">Back to Home</a>
+                <a href="/" class="btn btn-primary">
+                    <i class="fas fa-home me-2"></i>Back to Home
+                </a>
+            </div>
         </div>
     </div>
 </div>

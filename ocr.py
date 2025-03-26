@@ -71,23 +71,52 @@ def extract_diabetes_fields(text):
 
 # Regex-based extraction for Liver Function Test (LFT)
 def extract_liver_fields(text):
+    # Convert text to uppercase for consistent matching
+    text = text.upper()
+    
     patterns = {
-        "Total_Bilirubin": r"TOTAL BILIRUBIN\s*([\d.]+)",
-        "Direct_Bilirubin": r"DIRECT BILIRUBIN\s*([\d.]+)",
-        "Alkaline_Phosphotase": r"ALKALINE PHOSPHATASE\s*([\d.]+)",
-        "Alamine_Aminotransferase": r"SGPT\s*([\d.]+)",
-        "Aspartate_Aminotransferase": r"SGOT\s*([\d.]+)",
-        "Total_Protiens": r"TOTAL PROTEINS\s*([\d.]+)",
-        "Albumin": r"ALBUMIN\s*([\d.]+)",
-        "Albumin_and_Globulin_Ratio": r"A/G RATIO\s*([\d.]+)",
-        "Age": r"Age\s*[:\-\s]\s*(\d+)"
+        "Age": r"AGE/GENDER\s*:\s*(\d+)",
+        "Total_Bilirubin": r"TOTAL BILIRUBIN\s*[:\-\s]*([\d.]+)",
+        "Direct_Bilirubin": r"DIRECT BILIRUBIN\s*[:\-\s]*([\d.]+)",
+        "Alkaline_Phosphotase": r"ALKALINE PHOSPHATASE\s*[:\-\s]*([\d.]+)",
+        "Alamine_Aminotransferase": r"SGPT\s*[:\-\s]*([\d.]+)",
+        "Aspartate_Aminotransferase": r"SGOT\s*[:\-\s]*([\d.]+)",
+        "Total_Protiens": r"TOTAL PROTEINS\s*[:\-\s]*([\d.]+)",
+        "Albumin": r"ALBUMIN\s*[:\-\s]*([\d.]+)",
+        "Albumin_and_Globulin_Ratio": r"A/G RATIO\s*[:\-\s]*([\d.]+)"
     }
 
     extracted_values = {}
     for field, pattern in patterns.items():
-        match = re.search(pattern, text, re.IGNORECASE)
-        extracted_values[field] = match.group(1) if match else ""
+        match = re.search(pattern, text)
+        if match:
+            value = match.group(1).strip()
+            
+            # Clean and validate each field
+            try:
+                if field == 'Age':
+                    value = str(int(value))
+                elif field in ['Total_Bilirubin', 'Direct_Bilirubin', 'Alkaline_Phosphotase', 
+                             'Alamine_Aminotransferase', 'Aspartate_Aminotransferase', 
+                             'Total_Protiens', 'Albumin', 'Albumin_and_Globulin_Ratio']:
+                    # Handle decimal values
+                    value = str(float(value))
+                
+                extracted_values[field] = value
+            except (ValueError, TypeError, AttributeError) as e:
+                print(f"Error processing {field}: {e}")
+                extracted_values[field] = "Not found"
+        else:
+            print(f"Pattern not found for {field}")
+            extracted_values[field] = "Not found"
 
+    # Add empty Gender field for liver test
+    extracted_values['Gender'] = ''
+
+    # Debug print
+    print("Extracted text:", text)
+    print("Extracted values:", extracted_values)
+    
     return extracted_values
 
 # Identify test type based on extracted text
@@ -104,19 +133,17 @@ def extract_medical_fields(extracted_text, test_type='liver'):
         extracted_text = extracted_text.upper()
         
         patterns = {
-            "age": r"AGE:\s*(\d+)",  # Matches "Age: 45"
-            "sex": r"SEX:\s*(MALE|FEMALE|M|F)",  # Matches "Sex: Male"
-            "cp": r"CHEST PAIN TYPE \(CP\):\s*(\d+)",  # Matches "Chest Pain Type (CP): 2"
-            "trestbps": r"RESTING BLOOD PRESSURE:\s*(\d+)\s*(?:MM HG)?",  # Matches "Resting Blood Pressure: 130 mm Hg"
-            "chol": r"SERUM CHOLESTEROL:\s*(\d+)\s*(?:MG/DL)?",  # Matches "Serum Cholesterol: 236 mg/dl"
-            "fbs": r"FASTING BLOOD SUGAR:\s*[>|<]?\s*(\d+)\s*(?:MG/DL)?",  # Matches "Fasting Blood Sugar: >120 mg/dl"
-            "restecg": r"RESTING ECG RESULTS:\s*(\d+)",  # Matches "Resting ECG Results: 1"
-            "thalach": r"MAXIMUM HEART RATE \(THALACH\):\s*(\d+)",  # Matches "Maximum Heart Rate (Thalach): 150"
-            "exang": r"EXERCISE INDUCED ANGINA:\s*(\d+)",  # Matches "Exercise Induced Angina: 0"
-            "oldpeak": r"ST DEPRESSION \(OLDPEAK\):\s*([\d.]+)",  # Matches "ST Depression (Oldpeak): 2.3"
-            "slope": r"SLOPE OF PEAK EXERCISE ST SEGMENT:\s*(\d+)",  # Matches "Slope of Peak Exercise ST Segment: 1"
-            "ca": r"NUMBER OF MAJOR VESSELS \(CA\):\s*(\d+)",  # Matches "Number of Major Vessels (CA): 2"
-            "thal": r"THALASSEMIA \(THAL\):\s*(\d+)"  # Matches "Thalassemia (Thal): 3"
+            "Age": r"AGE:\s*(\d+)",  # Matches "Age: 45"
+            "Gender": r"SEX:\s*(MALE|FEMALE|M|F)",  # Matches "Sex: Male"
+            "ChestPainType": r"CHEST PAIN TYPE \(CP\):\s*(\d+)",  # Matches "Chest Pain Type (CP): 2"
+            "RestingBP": r"RESTING BLOOD PRESSURE:\s*(\d+)\s*(?:MM HG)?",  # Matches "Resting Blood Pressure: 130 mm Hg"
+            "Cholesterol": r"SERUM CHOLESTEROL:\s*(\d+)\s*(?:MG/DL)?",  # Matches "Serum Cholesterol: 236 mg/dl"
+            "FastingBS": r"FASTING BLOOD SUGAR:\s*[>|<]?\s*(\d+)\s*(?:MG/DL)?",  # Matches "Fasting Blood Sugar: >120 mg/dl"
+            "RestingECG": r"RESTING ECG RESULTS:\s*(\d+)",  # Matches "Resting ECG Results: 1"
+            "MaxHR": r"MAXIMUM HEART RATE \(THALACH\):\s*(\d+)",  # Matches "Maximum Heart Rate (Thalach): 150"
+            "ExerciseAngina": r"EXERCISE INDUCED ANGINA:\s*(\d+)",  # Matches "Exercise Induced Angina: 0"
+            "Oldpeak": r"ST DEPRESSION \(OLDPEAK\):\s*([\d.]+)",  # Matches "ST Depression (Oldpeak): 2.3"
+            "ST_Slope": r"SLOPE OF PEAK EXERCISE ST SEGMENT:\s*(\d+)"  # Matches "Slope of Peak Exercise ST Segment: 1"
         }
 
         extracted_values = {}
@@ -127,19 +154,19 @@ def extract_medical_fields(extracted_text, test_type='liver'):
                 
                 # Clean and validate each field
                 try:
-                    if field == 'sex':
+                    if field == 'Gender':
                         value = '1' if value in ['MALE', 'M'] else '0'
-                    elif field == 'fbs':
+                    elif field == 'FastingBS':
                         # Extract number and check if >120
                         num = int(re.search(r'\d+', value).group())
-                        value = '1' if num > 120 or '>120' in extracted_text else '0'
-                    elif field in ['cp', 'restecg', 'slope', 'ca', 'thal', 'exang']:
+                        value = str(num)  # Store actual value instead of binary
+                    elif field in ['ChestPainType', 'RestingECG', 'ST_Slope', 'ExerciseAngina']:
                         value = str(int(value))
-                    elif field in ['trestbps', 'chol', 'thalach']:
+                    elif field in ['RestingBP', 'Cholesterol', 'MaxHR']:
                         value = str(int(re.sub(r'[^\d]', '', value)))
-                    elif field == 'oldpeak':
+                    elif field == 'Oldpeak':
                         value = str(float(value))
-                    elif field == 'age':
+                    elif field == 'Age':
                         value = str(int(value))
                     
                     extracted_values[field] = value
@@ -157,16 +184,19 @@ def extract_medical_fields(extracted_text, test_type='liver'):
         return extracted_values
 
     elif test_type == 'liver':
+        # Convert text to uppercase for consistent matching
+        extracted_text = extracted_text.upper()
+        
         patterns = {
-            "Age": r"Age/Gender\s*:\s*(\d+)",
-            "Total_Bilirubin": r"TOTAL BILIRUBIN\s*([\d.]+)",
-            "Direct_Bilirubin": r"DIRECT BILIRUBIN\s*([\d.]+)",
-            "Alkaline_Phosphotase": r"ALKALINE PHOSPHATASE\s*([\d.]+)",
-            "Alamine_Aminotransferase": r"SGPT\s*([\d.]+)",
-            "Aspartate_Aminotransferase": r"SGOT\s*([\d.]+)",
-            "Total_Protiens": r"TOTAL PROTEINS\s*([\d.]+)",
-            "Albumin": r"ALBUMIN\s*([\d.]+)",
-            "Albumin_and_Globulin_Ratio": r"A/G RATIO\s*([\d.]+)"
+            "Age": r"AGE/GENDER\s*:\s*(\d+)",
+            "Total_Bilirubin": r"TOTAL BILIRUBIN\s*[:\-\s]*([\d.]+)",
+            "Direct_Bilirubin": r"DIRECT BILIRUBIN\s*[:\-\s]*([\d.]+)",
+            "Alkaline_Phosphotase": r"ALKALINE PHOSPHATASE\s*[:\-\s]*([\d.]+)",
+            "Alamine_Aminotransferase": r"SGPT\s*[:\-\s]*([\d.]+)",
+            "Aspartate_Aminotransferase": r"SGOT\s*[:\-\s]*([\d.]+)",
+            "Total_Protiens": r"TOTAL PROTEINS\s*[:\-\s]*([\d.]+)",
+            "Albumin": r"ALBUMIN\s*[:\-\s]*([\d.]+)",
+            "Albumin_and_Globulin_Ratio": r"A/G RATIO\s*[:\-\s]*([\d.]+)"
         }
     elif test_type == 'diabetes':
         # Convert text to uppercase for consistent matching
@@ -219,9 +249,9 @@ def extract_medical_fields(extracted_text, test_type='liver'):
             value = match.group(1)
             # Post-process specific fields
             if test_type == 'heart':
-                if field == 'sex':
+                if field == 'Gender':
                     value = '1' if value.lower() in ['male', 'm'] else '0'
-                elif field == 'fbs':
+                elif field == 'FastingBS':
                     value = '1' if '>120' in value else '0'
             elif test_type == 'diabetes':
                 if field == 'Pregnancies':

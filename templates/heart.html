@@ -1,182 +1,381 @@
 {% extends 'main.html' %}
 {% block content %}
+
 <style>
-body {
-    font-family: Cambria;
-    height: 100%;
-    background-image: linear-gradient(#c1e1e5, #c1f3d0);
-    margin: 0;
-    background-repeat: no-repeat;
-    background-attachment: fixed;
+    .input-form {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .form-section {
+        background-color: var(--card-bg);
+        border-radius: 15px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .form-section h4 {
+        color: var(--text-color);
+        margin-bottom: 1.5rem;
+        font-size: 1.25rem;
+    }
+
+    .form-control {
+        background-color: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.1);
+        color: var(--text-color);
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+    }
+
+    .form-control:focus {
+        background-color: rgba(255,255,255,0.1);
+        border-color: var(--secondary-color);
+        box-shadow: 0 0 0 2px rgba(0,166,81,0.25);
+        color: var(--text-color);
+    }
+
+    .form-control::placeholder {
+        color: rgba(255,255,255,0.5);
+    }
+
+    .form-group {
+        margin-bottom: 1.25rem;
+        position: relative;
+    }
+
+    .form-group label {
+        color: var(--text-color);
+        margin-bottom: 0.5rem;
+        display: block;
+        font-size: 0.9rem;
+        opacity: 0.8;
+    }
+
+    .input-group {
+        margin-bottom: 1.25rem;
+    }
+
+    .input-group-text {
+        background-color: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.1);
+        color: var(--text-color);
+    }
+
+    .btn-upload {
+        background-color: rgba(255,255,255,0.05);
+        border: 2px dashed rgba(255,255,255,0.2);
+        color: var(--text-color);
+        padding: 2rem;
+        border-radius: 10px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-bottom: 1rem;
+    }
+
+    .btn-upload:hover {
+        border-color: var(--secondary-color);
+        background-color: rgba(255,255,255,0.1);
+    }
+
+    .btn-upload i {
+        font-size: 2rem;
+        color: var(--secondary-color);
+        margin-bottom: 1rem;
+    }
+
+    .file-input {
+        display: none;
+    }
+
+    .btn-predict {
+        background-color: var(--secondary-color);
+        color: white;
+        padding: 1rem 2rem;
+        border-radius: 25px;
+        border: none;
+        font-weight: 500;
+        width: 100%;
+        transition: all 0.3s ease;
+    }
+
+    .btn-predict:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+
+    .form-hint {
+        color: var(--text-color);
+        opacity: 0.6;
+        font-size: 0.8rem;
+        margin-top: 0.25rem;
+    }
+
+    .radio-group {
+        display: flex;
+        gap: 1rem;
+        margin-top: 0.5rem;
+    }
+
+    .radio-option {
+        background-color: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 8px;
+        padding: 0.75rem 1.5rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        flex: 1;
+        text-align: center;
+    }
+
+    .radio-option:hover {
+        background-color: rgba(255,255,255,0.1);
+    }
+
+    .radio-option input[type="radio"] {
+        display: none;
+    }
+
+    .radio-option input[type="radio"]:checked + label {
+        color: var(--secondary-color);
+    }
+
+    .radio-option.selected {
+        border-color: var(--secondary-color);
+        background-color: rgba(0,166,81,0.1);
 }
 </style>
-<div class="row" style="margin-bottom: 72px;">
-    <div class="col-md-2"></div>
-    <div class="col-md-8">
-        <center><h1 style="color:white;">Heart Disease Predictor</h1></center>
+
+<div class="container py-4">
+    <div class="input-form">
+        <h2 class="text-center mb-4">
+            <i class="fas fa-heart me-2"></i>
+            Heart Disease Risk Assessment
+        </h2>
         
-        <!-- File Upload Section -->
-        <div class="card card-body" style="border: 1px solid black; background-color: #f0d0ff; margin-bottom: 20px;">
-            <h4>Upload Report (Optional)</h4>
-            <div id="uploadSection">
-                <input type="file" id="fileUpload" name="file" accept="image/*" required>
-                <button onclick="handleFileUpload()" class="btn btn-info btn-block" style="margin-top: 10px;">Extract Data</button>
-            </div>
+        <!-- Upload File Section -->
+        <div class="form-section">
+            <h4>
+                <i class="fas fa-upload me-2"></i>
+                Upload Medical Report
+            </h4>
+            <form id="uploadForm" enctype="multipart/form-data">
+                <label class="btn-upload d-block mb-3" for="fileUpload">
+                    <i class="fas fa-cloud-upload-alt d-block mb-2"></i>
+                    <span>Drop your file here or click to upload</span>
+                    <input type="file" id="fileUpload" name="file" accept="image/*" class="file-input" required>
+                </label>
+                <button type="submit" class="btn btn-predict">
+                    <i class="fas fa-magic me-2"></i>Extract Data
+                </button>
+            </form>
         </div>
 
-        <!-- Main Form -->
-        <div class="card card-body" style="border: 1px solid black; background-color: #daa8f4">
-            <form class="form-horizontal" action="{{ url_for('predictPage') }}" method="POST">
-                <!-- Hidden field for disease type -->
-                <input type="hidden" name="disease_type" value="Heart Disease">
-                
+        <!-- Input Form -->
+        <div class="form-section">
+            <h4>
+                <i class="fas fa-clipboard-list me-2"></i>
+                Health Metrics
+            </h4>
+            <form id="heartForm">
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group">
-                            <input style="border: 1px solid black; background-color: #f0d0ff" class="form-control" type="text" name="age" placeholder="Age (in years)">
+                            <label>Age (years)</label>
+                            <input class="form-control" type="number" name="Age" required>
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="form-group">
-                            <input style="border: 1px solid black; background-color: #f0d0ff" class="form-control" type="text" name="sex" placeholder="Sex (1 = Male; 0 = Female)">
+                            <label>Sex</label>
+                            <div class="radio-group">
+                                <div class="radio-option">
+                                    <input type="radio" id="male" name="Gender" value="1" required>
+                                    <label for="male">Male</label>
+                                </div>
+                                <div class="radio-option">
+                                    <input type="radio" id="female" name="Gender" value="0" required>
+                                    <label for="female">Female</label>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
+
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group">
-                            <input style="border: 1px solid black; background-color: #f0d0ff" class="form-control" type="text" name="cp" placeholder="Chest Pain Type"></div>
+                            <label>Chest Pain Type (0-3)</label>
+                            <input class="form-control" type="number" name="ChestPainType" min="0" max="3" required>
+                            <div class="form-hint">0: Typical Angina, 1: Atypical Angina, 2: Non-anginal Pain, 3: Asymptomatic</div>
+                        </div>
                     </div>
                     <div class="col-md-6">
                         <div class="form-group">
-                            <input style="border: 1px solid black; background-color: #f0d0ff" class="form-control" type="text" name="trestbps" placeholder="Resting Blood Pressure (in mm Hg)">
+                            <label>Resting Blood Pressure (mmHg)</label>
+                            <input class="form-control" type="number" name="RestingBP" required>
                         </div>
                     </div>
                 </div>
+
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group">
-                            <input style="border: 1px solid black; background-color: #f0d0ff" class="form-control" type="text" name="chol" placeholder="Serum Cholesterol (in mg/dl)">
+                            <label>Cholesterol (mg/dL)</label>
+                            <input class="form-control" type="number" name="Cholesterol" required>
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="form-group">
-                            <input style="border: 1px solid black; background-color: #f0d0ff" class="form-control" type="text" name="fbs" placeholder="Fasting Blood Sugar > 120 mg/dl (1 = True; 0 = False)">
+                            <label>Fasting Blood Sugar (mg/dL)</label>
+                            <input class="form-control" type="number" name="FastingBS" required>
                         </div>
                     </div>
                 </div>
+
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group">
-                            <input style="border: 1px solid black; background-color: #f0d0ff" class="form-control" type="text" name="restecg" placeholder="Resting Electrocardiograph Results">
+                            <label>Resting ECG (0-2)</label>
+                            <input class="form-control" type="number" name="RestingECG" min="0" max="2" required>
+                            <div class="form-hint">0: Normal, 1: ST-T wave abnormality, 2: Left ventricular hypertrophy</div>
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="form-group">
-                            <input style="border: 1px solid black; background-color: #f0d0ff" class="form-control" type="text" name="thalach" placeholder="Maximum Heart Rate Achieved">
+                            <label>Maximum Heart Rate (bpm)</label>
+                            <input class="form-control" type="number" name="MaxHR" required>
                         </div>
                     </div>
                 </div>
+
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group">
-                            <input style="border: 1px solid black; background-color: #f0d0ff" class="form-control" type="text" name="exang" placeholder="Exercise Induced Angina (1 = Yes; 0 = No)">
+                            <label>Exercise-Induced Angina</label>
+                            <div class="radio-group">
+                                <div class="radio-option">
+                                    <input type="radio" id="angina_yes" name="ExerciseAngina" value="1" required>
+                                    <label for="angina_yes">Yes</label>
+                                </div>
+                                <div class="radio-option">
+                                    <input type="radio" id="angina_no" name="ExerciseAngina" value="0" required>
+                                    <label for="angina_no">No</label>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="form-group">
-                            <input style="border: 1px solid black; background-color: #f0d0ff" class="form-control" type="text" name="oldpeak" placeholder="ST Depression Induced by Exercise Relative to Rest">
+                            <label>ST Depression (mm)</label>
+                            <input class="form-control" type="number" name="Oldpeak" step="0.1" required>
                         </div>
                     </div>
                 </div>
+
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group">
-                            <input style="border: 1px solid black; background-color: #f0d0ff" class="form-control" type="text" name="slope" placeholder="The Slope of the Peak Exercise ST Segment">
+                            <label>ST Slope (0-2)</label>
+                            <input class="form-control" type="number" name="ST_Slope" min="0" max="2" required>
+                            <div class="form-hint">0: Up sloping, 1: Flat, 2: Down sloping</div>
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="form-group">
-                            <input style="border: 1px solid black; background-color: #f0d0ff" class="form-control" type="text" name="ca" placeholder="Number of Major Vessels (0-3) Colored by Fluoroscopy">
+                            <label>Height (cm)</label>
+                            <input class="form-control" type="number" name="height" required>
                         </div>
                     </div>
                 </div>
+
                 <div class="row">
-                    <div class="col-md-3"></div>
                     <div class="col-md-6">
                         <div class="form-group">
-                            <input style="border: 1px solid black; background-color: #f0d0ff" class="form-control" type="text" name="thal" placeholder="Thal: 1 = Normal; 2 = Fixed Defect; 3 = Reversible Def">
+                            <label>Weight (kg)</label>
+                            <input class="form-control" type="number" name="weight" required>
                         </div>
                     </div>
-                </div>
-                <div class="bmi-section">
-                    <h4 class="bmi-title">BMI Calculator</h4>
-                    <div class="row bmi-inputs">
                         <div class="col-md-6">
                             <div class="form-group">
-                                <input style="border: 1px solid black; background-color: #f0d0ff" class="form-control" type="number" step="0.01" id="height" placeholder="Height (in cm)" data-only-display="true">
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <input style="border: 1px solid black; background-color: #f0d0ff" class="form-control" type="number" step="0.01" id="weight" placeholder="Weight (in kg)" data-only-display="true">
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-12">
-                            <div class="form-group">
-                                <input style="border: 1px solid black; background-color: #f0d0ff" class="form-control" type="text" id="bmi" placeholder="BMI (calculated)" readonly>
-                                <input type="hidden" id="bmi_display" name="bmi_display">
-                            </div>
+                            <label>BMI</label>
+                            <input class="form-control" type="number" name="bmi_display" readonly>
                         </div>
                     </div>
                 </div>
-                <input style="background-color: #4e0374" type="submit" class="btn btn-info btn-block" value="Predict">
+
+                <button type="submit" class="btn btn-predict">
+                    <i class="fas fa-calculator me-2"></i>Calculate Risk
+                </button>
             </form>
         </div>
     </div>
 </div>
 
 <script>
+document.addEventListener('DOMContentLoaded', function() {
+    // BMI Calculation
+    const heightInput = document.querySelector('input[name="height"]');
+    const weightInput = document.querySelector('input[name="weight"]');
+    const bmiDisplay = document.querySelector('input[name="bmi_display"]');
+
 function calculateBMI() {
-    const height = parseFloat(document.getElementById('height').value);
-    const weight = parseFloat(document.getElementById('weight').value);
-    
+        const height = parseFloat(heightInput.value) / 100; // Convert to meters
+        const weight = parseFloat(weightInput.value);
     if (height && weight) {
-        const heightInMeters = height / 100;
-        const bmi = (weight / (heightInMeters * heightInMeters)).toFixed(2);
-        document.getElementById('bmi').value = bmi;
-        document.getElementById('bmi_display').value = bmi;
-    }
-}
-
-document.getElementById('height').addEventListener('input', calculateBMI);
-document.getElementById('weight').addEventListener('input', calculateBMI);
-
-// Updated file upload handling
-function populateFields(data) {
-    for (const [key, value] of Object.entries(data)) {
-        const field = document.querySelector(`[name="${key}"]`);
-        if (field && value !== "Not found") {
-            field.value = value;
+            const bmi = weight / (height * height);
+            bmiDisplay.value = bmi.toFixed(1);
         }
     }
-}
 
-function handleFileUpload() {
-    event.preventDefault();
-    const fileInput = document.getElementById("fileUpload");
-    if (!fileInput.files.length) {
-        alert("Please select a file first!");
+    heightInput.addEventListener('input', calculateBMI);
+    weightInput.addEventListener('input', calculateBMI);
+
+    // Radio button styling
+    const radioOptions = document.querySelectorAll('.radio-option');
+    radioOptions.forEach(option => {
+        option.addEventListener('click', function() {
+            const radio = this.querySelector('input[type="radio"]');
+            if (radio) {
+                radio.checked = true;
+                this.classList.add('selected');
+                // Remove selected class from other options in the same group
+                const otherOptions = this.parentElement.querySelectorAll('.radio-option');
+                otherOptions.forEach(opt => {
+                    if (opt !== this) {
+                        opt.classList.remove('selected');
+                    }
+                });
+            }
+        });
+    });
+
+    // File upload handling
+    const uploadForm = document.getElementById('uploadForm');
+    const fileInput = document.getElementById('fileUpload');
+    const submitButton = uploadForm.querySelector('button[type="submit"]');
+
+    uploadForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const file = fileInput.files[0];
+        if (!file) {
+            alert('Please select a file');
         return;
     }
 
-    const formData = new FormData();
-    formData.append("file", fileInput.files[0]);
+        // Show loading state
+        const originalText = submitButton.innerHTML;
+        submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+        submitButton.disabled = true;
 
-    fetch("/upload", { 
-        method: "POST", 
+    const formData = new FormData();
+        formData.append('file', file);
+
+        fetch('/upload', {
+            method: 'POST',
         body: formData,
         headers: {
             'X-Test-Type': 'heart'
@@ -184,25 +383,93 @@ function handleFileUpload() {
     })
     .then(response => {
         if (!response.ok) {
-            return response.text().then(text => {
-                throw new Error(text);
-            });
+                throw new Error('Network response was not ok');
         }
         return response.json();
     })
     .then(data => {
-        console.log("Received data:", data);
-        if (data.data) {
-            populateFields(data.data);
-            alert("Data extracted successfully!");
-        } else {
-            alert("Error: " + (data.error || "Invalid response format"));
+            if (data.error) {
+                alert(data.error);
+                return;
+            }
+            // Fill form with extracted data
+            Object.keys(data.data).forEach(key => {
+                const input = document.querySelector(`input[name="${key}"]`);
+                if (input) {
+                    input.value = data.data[key];
+                    // Trigger change event for BMI calculation
+                    if (key === 'height' || key === 'weight') {
+                        input.dispatchEvent(new Event('input'));
+                    }
+                }
+            });
+            alert('Data extracted successfully! Please review and submit.');
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error processing file. Please try again.');
+        })
+        .finally(() => {
+            // Restore button state
+            submitButton.innerHTML = originalText;
+            submitButton.disabled = false;
+        });
+    });
+
+    // File input change handler
+    fileInput.addEventListener('change', function(e) {
+        const fileName = e.target.files[0]?.name;
+        if (fileName) {
+            const label = this.closest('.btn-upload').querySelector('span');
+            label.textContent = fileName;
         }
+    });
+
+    // Form submission handling
+    const heartForm = document.getElementById('heartForm');
+    heartForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Show loading state
+        const submitButton = this.querySelector('button[type="submit"]');
+        const originalText = submitButton.innerHTML;
+        submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Calculating...';
+        submitButton.disabled = true;
+
+        // Create FormData object
+        const formData = new FormData(this);
+
+        // Send AJAX request
+        fetch('/heartpredict', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (!data.success) {
+                throw new Error(data.error || 'Prediction failed');
+            }
+            
+            // Store prediction data in sessionStorage
+            sessionStorage.setItem('prediction', JSON.stringify(data));
+            
+            // Redirect to results page
+            window.location.href = '/heart_predict';
     })
     .catch(error => {
         console.error('Error:', error);
-        alert("Upload failed! " + error.message);
+            alert(error.message || 'Error calculating risk. Please try again.');
+        })
+        .finally(() => {
+            // Restore button state
+            submitButton.innerHTML = originalText;
+            submitButton.disabled = false;
+        });
     });
-}
+});
 </script>
+
 {% endblock %}

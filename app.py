@@ -8,6 +8,28 @@ from ocr import preprocess_image, extract_text_from_image, extract_medical_field
 import joblib
 from werkzeug.utils import secure_filename
 import traceback
+import json
+
+# Load the heart disease model
+try:
+    heart_model = joblib.load('models/heart.pkl')
+except Exception as e:
+    print(f"Error loading heart model: {str(e)}")
+    heart_model = None
+
+# Load the liver disease model
+try:
+    liver_model = joblib.load('models/liver.pkl')
+except Exception as e:
+    print(f"Error loading liver model: {str(e)}")
+    liver_model = None
+
+# Load the diabetes model
+try:
+    diabetes_model = joblib.load('models/diabetes.pkl')
+except Exception as e:
+    print(f"Error loading diabetes model: {str(e)}")
+    diabetes_model = None
 
 app = Flask(__name__)
 #app.secret_key = 'your_secret_key_here'  # Required for flash messages
@@ -45,6 +67,7 @@ def get_diet_recommendation(disease, risk_level, bmi=None, gender=None, age=None
     recommendations = []
     
     # Calculate calories if all required parameters are provided
+    daily_calories = None
     if all(v is not None for v in [bmi, gender, age]):
         daily_calories = calculate_calories(bmi, gender, age, risk_level)
         calorie_info = (
@@ -71,9 +94,9 @@ def get_diet_recommendation(disease, risk_level, bmi=None, gender=None, age=None
                 "• Healthy Fats: 25-30% of daily calories\n"
                 "• Fiber: 25-30g daily\n\n"
                 "Target Daily Intake:\n"
-                f"• Protein: {int(daily_calories * 0.25 / 4)}g\n"
-                f"• Carbohydrates: {int(daily_calories * 0.5 / 4)}g\n"
-                f"• Healthy Fats: {int(daily_calories * 0.25 / 9)}g",
+                f"• Protein: {int(daily_calories * 0.25 / 4) if daily_calories else 'N/A'}g\n"
+                f"• Carbohydrates: {int(daily_calories * 0.5 / 4) if daily_calories else 'N/A'}g\n"
+                f"• Healthy Fats: {int(daily_calories * 0.25 / 9) if daily_calories else 'N/A'}g",
 
                 "✅ Liver-Healthy Foods:\n"
                 "• Lean Proteins:\n"
@@ -215,9 +238,9 @@ def get_diet_recommendation(disease, risk_level, bmi=None, gender=None, age=None
                 "• Healthy Fats: 25-30% of daily calories\n"
                 "• Fiber: 25-30g daily\n\n"
                 "Target Daily Intake:\n"
-                f"• Carbohydrates: {int(daily_calories * 0.5 / 4)}g\n"
-                f"• Protein: {int(daily_calories * 0.25 / 4)}g\n"
-                f"• Healthy Fats: {int(daily_calories * 0.25 / 9)}g",
+                f"• Carbohydrates: {int(daily_calories * 0.5 / 4) if daily_calories else 'N/A'}g\n"
+                f"• Protein: {int(daily_calories * 0.25 / 4) if daily_calories else 'N/A'}g\n"
+                f"• Healthy Fats: {int(daily_calories * 0.25 / 9) if daily_calories else 'N/A'}g",
 
                 "✅ Recommended Foods:\n"
                 "• Complex Carbohydrates:\n"
@@ -443,6 +466,26 @@ def predict(values, dic):
         except Exception as e:
             raise e
 
+    # Heart Disease Prediction
+    elif len(values) == 13:
+        try:
+            features = np.array([[float(dic[field]) for field in [
+                'Age', 'Gender', 'ChestPainType', 'RestingBP', 'Cholesterol',
+                'FastingBS', 'RestingECG', 'MaxHR', 'ExerciseAngina',
+                'Oldpeak', 'ST_Slope']]])
+            
+            model = joblib.load('models/heart.pkl')
+            prediction = model.predict(features)[0]
+            prediction_proba = model.predict_proba(features)[0]
+            risk_percentage = round(prediction_proba[1] * 100, 2)
+
+            result['disease'] = 'Heart Disease'
+            result['risk'] = risk_percentage
+            result['level'] = 'High' if risk_percentage > 70 else 'Moderate' if risk_percentage > 30 else 'Low'
+            result['message'] = f"Heart Disease {'Detected' if prediction == 1 else 'Not Detected'} ({result['level']} Risk - {risk_percentage}%)"
+        except Exception as e:
+            raise e
+
     return result
 
 @app.route("/")
@@ -535,6 +578,11 @@ def predictPage():
                 try:
                     prediction_dict[key] = float(value)
                 except ValueError:
+                    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                        return jsonify({
+                            'success': False,
+                            'error': f"Invalid value for {key}: {value}"
+                        })
                     return render_template("home.html", message=f"Invalid value for {key}: {value}")
 
             to_predict_list = list(map(float, list(prediction_dict.values())))
@@ -575,6 +623,17 @@ def predictPage():
             elif 'diabetes' in disease_type.lower():
                 template = 'diabetes_predict.html'
 
+            # Check if it's an AJAX request
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({
+                    'success': True,
+                    'pred': prediction_result.get('message', ''),
+                    'diet': diet_recommendation,
+                    'bmi': bmi_display,
+                    'bmi_category': bmi_category,
+                    'risk_percentage': prediction_result.get('risk', 0)
+                })
+
             return render_template(template,
                                 pred=prediction_result.get('message', ''),
                                 diet=diet_recommendation,
@@ -585,6 +644,11 @@ def predictPage():
     except Exception as e:
         print(f"Error in prediction route: {str(e)}")
         traceback.print_exc()
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            })
         return render_template("home.html", message=f"Error: {str(e)}")
 
     return render_template('home.html')
@@ -713,6 +777,11 @@ def heartpredictPage():
                 try:
                     to_predict_dict[key] = float(value)
                 except ValueError:
+                    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                        return jsonify({
+                            'success': False,
+                            'error': f"Invalid value for {key}: {value}"
+                        })
                     return render_template("home.html", message=f"Invalid value for {key}: {value}")
 
             to_predict_list = list(map(float, list(to_predict_dict.values())))
@@ -735,7 +804,7 @@ def heartpredictPage():
                 'prediction': bool(prediction[0]),
                 'probability': risk_percentage,
                 'level': risk_level,
-                'message': f"Risk of Heart Disease: {risk_percentage:.1f}%"
+                'message': f"Heart Disease {'Detected' if prediction[0] == 1 else 'Not Detected'} ({risk_level} Risk - {risk_percentage:.1f}%)"
             }
 
             # Calculate BMI category
@@ -764,6 +833,17 @@ def heartpredictPage():
                 age
             )
 
+            # Check if it's an AJAX request
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({
+                    'success': True,
+                    'pred': prediction_result['message'],
+                    'diet': diet_recommendation,
+                    'bmi': bmi_display,
+                    'bmi_category': bmi_category,
+                    'risk_percentage': risk_percentage
+                })
+
             return render_template('heart_predict.html', 
                                  pred=prediction_result['message'],
                                  diet=diet_recommendation,
@@ -774,20 +854,46 @@ def heartpredictPage():
     except Exception as e:
         print(f"Error in heart prediction route: {str(e)}")
         traceback.print_exc()
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            })
         return render_template("home.html", message=f"Error: {str(e)}")
 
-    return render_template('home.html')  # Changed to return to home.html
+    return render_template('home.html')
 
 @app.route("/liverpredict", methods=['POST', 'GET'])
 def liverpredictPage():
     try:
+        # If it's a GET request with results parameter, render the results page
+        if request.method == 'GET' and request.args.get('results'):
+            # Get the stored prediction data from sessionStorage
+            prediction_data = request.args.get('data')
+            if prediction_data:
+                try:
+                    data = json.loads(prediction_data)
+                    return render_template('liver_predict.html',
+                                         pred=data.get('pred', ''),
+                                         diet=data.get('diet', []),
+                                         bmi=data.get('bmi', ''),
+                                         bmi_category=data.get('bmi_category', ''),
+                                         risk_percentage=data.get('risk_percentage', 0))
+                except json.JSONDecodeError:
+                    pass
+            return render_template('liver_predict.html')
+            
         if request.method == 'POST':
-            to_predict_dict = request.form.to_dict()
+            # Handle both form data and JSON data
+            if request.is_json:
+                to_predict_dict = request.get_json()
+            else:
+                to_predict_dict = request.form.to_dict()
             
             # Extract BMI and other values
             bmi_display = to_predict_dict.get('bmi_display', None)
-            gender = float(to_predict_dict.get('Gender', to_predict_dict.get('sex', 0)))
-            age = float(to_predict_dict.get('Age', to_predict_dict.get('age', 0)))
+            gender = to_predict_dict.get('Gender', '0')  # Default to '0' if not provided
+            age = float(to_predict_dict.get('Age', 0))
 
             # Remove non-prediction fields
             if 'bmi_display' in to_predict_dict:
@@ -796,15 +902,47 @@ def liverpredictPage():
                 del to_predict_dict['height']
             if 'weight' in to_predict_dict:
                 del to_predict_dict['weight']
+            if 'disease_type' in to_predict_dict:
+                del to_predict_dict['disease_type']
 
             # Convert values and predict
             for key, value in to_predict_dict.items():
                 try:
+                    # Handle empty or invalid values
+                    if not value or value == "Not found":
+                        return jsonify({
+                            'success': False,
+                            'error': f"Missing or invalid value for {key}"
+                        })
+                    
+                    # Skip gender conversion as it's handled separately
+                    if key == 'Gender':
+                        continue
+                    
+                    # Convert to float, handling decimal values
                     to_predict_dict[key] = float(value)
                 except ValueError:
-                    return render_template("home.html", message=f"Invalid value for {key}: {value}")
+                    return jsonify({
+                        'success': False,
+                        'error': f"Invalid value for {key}: {value}"
+                    })
 
-            to_predict_list = list(map(float, list(to_predict_dict.values())))
+            # Convert gender to numeric value
+            gender = 1 if gender.lower() in ['male', 'm'] else 0
+
+            # Create prediction list in the correct order
+            to_predict_list = [
+                age,
+                gender,
+                to_predict_dict['Total_Bilirubin'],
+                to_predict_dict['Direct_Bilirubin'],
+                to_predict_dict['Alkaline_Phosphotase'],
+                to_predict_dict['Alamine_Aminotransferase'],
+                to_predict_dict['Aspartate_Aminotransferase'],
+                to_predict_dict['Total_Protiens'],
+                to_predict_dict['Albumin'],
+                to_predict_dict['Albumin_and_Globulin_Ratio']
+            ]
             
             # Make prediction
             prediction = liver_model.predict([to_predict_list])
@@ -853,6 +991,17 @@ def liverpredictPage():
                 age
             )
 
+            # Check if it's an AJAX request
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({
+                    'success': True,
+                    'pred': prediction_result['message'],
+                    'diet': diet_recommendation,
+                    'bmi': bmi_display,
+                    'bmi_category': bmi_category,
+                    'risk_percentage': risk_percentage
+                })
+
             return render_template('liver_predict.html', 
                                  pred=prediction_result['message'],
                                  diet=diet_recommendation,
@@ -863,9 +1012,14 @@ def liverpredictPage():
     except Exception as e:
         print(f"Error in liver prediction route: {str(e)}")
         traceback.print_exc()
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            })
         return render_template("home.html", message=f"Error: {str(e)}")
 
-    return render_template('home.html')  # Changed to return to home.html
+    return render_template('home.html')
 
 @app.route("/diabetespredict", methods=['POST', 'GET'])
 def diabetespredictPage():
