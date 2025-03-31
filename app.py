@@ -1,5 +1,5 @@
 import os
-from flask import Flask, render_template, request, flash, jsonify
+from flask import Flask, render_template, request, flash, jsonify, session, redirect, url_for
 import pickle
 import numpy as np
 from PIL import Image
@@ -9,6 +9,7 @@ import joblib
 from werkzeug.utils import secure_filename
 import traceback
 import json
+import io
 
 # Load the heart disease model
 try:
@@ -334,85 +335,142 @@ def get_diet_recommendation(disease, risk_level, bmi=None, gender=None, age=None
         },
         'Heart Disease': {
             'High': [
-                "🫀 Cardiac Diet Guidelines:\n"
-                "• Limit daily sodium to 1,500-2,000mg\n"
-                "• Restrict saturated fats to less than 6% of daily calories\n"
-                "• Aim for 25-30g of fiber daily\n"
-                "• Keep cholesterol under 200mg daily",
+                "🫀 Advanced Cardiac Nutrition Protocol:\n"
+                "• Sodium restriction: 1,500-2,000mg/day\n"
+                "• Saturated fat intake: <6% of total calories\n"
+                "• Dietary cholesterol: <150mg/day\n"
+                "• Soluble fiber: 30-35g/day\n"
+                "• Omega-3 fatty acids: 3-4g/day\n"
+                "• Plant sterols: 2g/day\n"
+                "• Potassium intake: 4,700mg/day\n"
+                "• Magnesium intake: 400-500mg/day",
 
-                "✅ Heart-Healthy Foods:\n"
-                "• Lean proteins: Fish (especially salmon, mackerel), skinless poultry\n"
-                "• Whole grains: Oats, quinoa, brown rice\n"
-                "• Vegetables: Leafy greens, broccoli, carrots\n"
-                "• Fruits: Berries, citrus fruits, apples\n"
-                "• Healthy fats: Olive oil, avocados, nuts\n\n"
-                "Sample Meals:\n"
-                "Breakfast: Oatmeal with berries and nuts\n"
-                "Lunch: Grilled fish with quinoa and vegetables\n"
-                "Dinner: Lean chicken breast with sweet potato",
+                "🏋️ Cardiorespiratory Exercise Protocol:\n"
+                "• Zone 2 Training (65-75% MHR): 30-45 mins, 4-5x/week\n"
+                "• HIIT Protocol: 4x4 method (4 min at 85-95% MHR, 3 min active recovery)\n"
+                "• Resistance Training: 2-3 sets, 12-15 reps, RPE 6-7\n"
+                "• Myocardial Adaptation Phase: 8-12 weeks\n"
+                "• VO2 Max Target: Progressive increase to >35 ml/kg/min\n"
+                "• Heart Rate Recovery Goal: <12 BPM drop in first minute\n"
+                "• Blood Pressure Response: <10 mmHg spike during exercise",
 
-                "❌ Foods to Avoid:\n"
-                "• Processed meats (bacon, sausage)\n"
-                "• Full-fat dairy products\n"
-                "• Fried foods\n"
-                "• Foods high in sodium\n"
-                "• Sugary beverages and snacks",
+                "🥗 Advanced Cardiac-Protective Diet:\n"
+                "• Pre-Exercise Meal (2-3 hrs before):\n"
+                "  - Complex CHO: 40-50g (Low GI <55)\n"
+                "  - Lean protein: 15-20g\n"
+                "  - Antioxidant-rich fruits: 1-2 servings\n\n"
+                "• Post-Exercise Recovery:\n"
+                "  - Whey/plant protein isolate: 25-30g\n"
+                "  - Branch Chain Amino Acids: 5-7g\n"
+                "  - Electrolyte replenishment: Na+/K+ balanced solution\n\n"
+                "• Daily Micronutrient Targets:\n"
+                "  - CoQ10: 200-300mg\n"
+                "  - L-Carnitine: 2-3g\n"
+                "  - D-Ribose: 5g\n"
+                "  - Taurine: 1-2g\n"
+                "  - Magnesium Citrate: 400mg",
 
-                "📊 Daily Monitoring:\n"
-                "• Blood pressure readings\n"
-                "• Salt intake tracking\n"
-                "• Physical activity (aim for 30 mins daily)\n"
-                "• Weight monitoring\n\n"
-                "Target Numbers:\n"
-                "• Blood Pressure: Below 120/80 mmHg\n"
-                "• Resting Heart Rate: 60-100 bpm\n"
-                "• Cholesterol: LDL < 100 mg/dL",
+                "📊 Biomarker Monitoring Protocol:\n"
+                "• Lipid Panel Targets:\n"
+                "  - LDL-C: <70 mg/dL\n"
+                "  - HDL-C: >60 mg/dL\n"
+                "  - Triglycerides: <100 mg/dL\n"
+                "  - ApoB: <80 mg/dL\n"
+                "• Inflammatory Markers:\n"
+                "  - hs-CRP: <1 mg/L\n"
+                "  - IL-6: <2 pg/mL\n"
+                "  - Fibrinogen: <350 mg/dL\n"
+                "• Metabolic Health:\n"
+                "  - HbA1c: <5.7%\n"
+                "  - Fasting Glucose: <90 mg/dL\n"
+                "  - HOMA-IR: <1.5",
 
-                "🌿 Supplements (consult doctor):\n"
-                "• Omega-3: 1,000-2,000mg daily\n"
-                "• CoQ10: 100-200mg daily\n"
-                "• Magnesium: 400mg daily\n"
-                "• Vitamin D: 1,000-2,000 IU daily"
+                "🌿 Phytonutrient Supplementation Strategy:\n"
+                "• Primary Cardiovascular Support:\n"
+                "  - Aged Garlic Extract: 600-1,200mg/day\n"
+                "  - Bergamot Extract: 500mg BID\n"
+                "  - Grape Seed Extract: 300-600mg/day\n"
+                "  - Quercetin: 500mg BID\n"
+                "• Nitric Oxide Boosters:\n"
+                "  - L-Citrulline: 6-8g/day\n"
+                "  - Beetroot Extract: 500mg/day\n"
+                "  - Pomegranate Extract: 500mg/day\n"
+                "• Antioxidant Complex:\n"
+                "  - Mixed Tocotrienols: 200mg/day\n"
+                "  - Astaxanthin: 12mg/day\n"
+                "  - R-Lipoic Acid: 300mg BID",
+
+                "⚡ Metabolic Optimization Protocol:\n"
+                "• Meal Timing:\n"
+                "  - Feeding Window: 8-10 hours\n"
+                "  - Circadian Alignment: First meal within 1 hour of waking\n"
+                "  - Pre-sleep Fast: 3 hours before bed\n"
+                "• Macronutrient Distribution:\n"
+                "  - Protein: 1.6-1.8g/kg lean mass\n"
+                "  - Carbohydrates: 3-4g/kg (focus on resistant starch)\n"
+                "  - Fats: 0.8-1g/kg (prioritize MUFA and omega-3)\n"
+                "• Glucose Management:\n"
+                "  - Post-meal glucose delta: <30 mg/dL\n"
+                "  - Glycemic variability: <15%\n"
+                "  - Time in range: >90%",
+
+                "🧘‍♂️ Stress Management & Recovery:\n"
+                "• HRV Optimization:\n"
+                "  - Morning RMSSD Target: >45ms\n"
+                "  - Daily HRV CV: <8%\n"
+                "  - LF/HF Ratio: <2.0\n"
+                "• Sleep Architecture:\n"
+                "  - Total Sleep Time: 7.5-8.5 hours\n"
+                "  - Deep Sleep: >20% of TST\n"
+                "  - REM Sleep: >20% of TST\n"
+                "  - Sleep Latency: <15 minutes\n"
+                "• Parasympathetic Activation:\n"
+                "  - Diaphragmatic Breathing: 6 breaths/min\n"
+                "  - Progressive Muscle Relaxation: 15 mins/day\n"
+                "  - Cold Exposure: 2-3 mins at 55°F"
             ],
             'Moderate': [
-                "🫀 Modified Heart-Healthy Guidelines:\n"
-                "• Limit sodium to 2,000-2,300mg daily\n"
-                "• Keep saturated fats under 10% of daily calories\n"
-                "• Aim for 20-25g of fiber daily",
+                "🫀 Intermediate Cardiac Protocol:\n"
+                "• Sodium: 2,000-2,300mg/day\n"
+                "• Saturated fat: <8% of calories\n"
+                "• Fiber: 25-30g/day\n"
+                "• Omega-3: 2-3g/day\n"
+                "• Plant sterols: 1.5g/day",
 
-                "✅ Recommended Foods:\n"
-                "• Fish twice weekly\n"
-                "• Daily servings of fruits and vegetables\n"
-                "• Whole grains\n"
-                "• Low-fat dairy products",
+                "🏋️ Exercise Protocol:\n"
+                "• Zone 2 Training: 30 mins, 3-4x/week\n"
+                "• HIIT: 30:30 method (30s high, 30s recovery)\n"
+                "• Resistance Training: 2 sets, 12 reps\n"
+                "• Target HR: 65-75% max\n"
+                "• BP Response: <15 mmHg spike",
 
-                "❌ Foods to Limit:\n"
-                "• Red meat (limit to 1-2 times per week)\n"
-                "• Processed foods\n"
-                "• Added sugars\n"
-                "• High-sodium foods",
-
-                "📊 Monitoring:\n"
-                "• Regular blood pressure checks\n"
-                "• Weekly weight monitoring\n"
-                "• Physical activity tracking"
+                "🥗 Nutrition Strategy:\n"
+                "• Pre-Exercise:\n"
+                "  - Complex CHO: 30-40g\n"
+                "  - Protein: 15g\n"
+                "• Post-Exercise:\n"
+                "  - Protein: 20-25g\n"
+                "  - BCAAs: 5g\n"
+                "• Daily Supplements:\n"
+                "  - CoQ10: 100-200mg\n"
+                "  - Magnesium: 300mg\n"
+                "  - Omega-3: 2g EPA/DHA"
             ],
             'Low': [
-                "🫀 Preventive Diet Guidelines:\n"
-                "• Maintain a balanced diet\n"
-                "• Focus on portion control\n"
-                "• Include variety of foods",
+                "🫀 Preventive Protocol:\n"
+                "• Sodium: <2,300mg/day\n"
+                "• Fiber: >25g/day\n"
+                "• Omega-3: 1-2g/day",
 
-                "✅ Healthy Choices:\n"
-                "• Regular fish consumption\n"
-                "• Plenty of fruits and vegetables\n"
-                "• Whole grain options\n"
-                "• Healthy cooking methods",
+                "🏋️ Basic Exercise Plan:\n"
+                "• Moderate activity: 150 mins/week\n"
+                "• Strength training: 2x/week\n"
+                "• Target HR: 60-70% max",
 
-                "📊 General Monitoring:\n"
-                "• Annual health check-ups\n"
-                "• Regular exercise routine\n"
-                "• Stress management"
+                "🥗 Basic Nutrition:\n"
+                "• Balanced macros\n"
+                "• Regular meal timing\n"
+                "• Hydration: 2-3L/day"
             ]
         }
     }
@@ -711,157 +769,194 @@ def pneumoniapredictPage():
 
     return render_template('pneumonia.html')
 
-@app.route("/upload", methods=['POST'])
-def upload_file():
+@app.route('/upload', methods=['POST'])
+def upload():
     try:
         if 'file' not in request.files:
-            return jsonify({'error': 'No file part'}), 400
+            print("No file in request.files")
+            return jsonify({'error': 'No file uploaded'})
         
         file = request.files['file']
-        test_type = request.headers.get('X-Test-Type', 'liver')
-        
         if file.filename == '':
-            return jsonify({'error': 'No selected file'}), 400
-
-        if file:
-            # Save the uploaded image
-            image_path = os.path.join(UPLOAD_FOLDER, file.filename)
-            file.save(image_path)
-
-            try:
-                # Process the image
-                preprocessed_image = preprocess_image(image_path)
-                if preprocessed_image is not None:
-                    extracted_text = extract_text_from_image(preprocessed_image)
-                    if extracted_text:
-                        data = extract_medical_fields(extracted_text, test_type)
-                        return jsonify({
-                            'test_type': test_type.capitalize(),
-                            'data': data
-                        })
-                    else:
-                        return jsonify({'error': 'Could not extract text from image'}), 400
-                else:
-                    return jsonify({'error': 'Could not process image'}), 400
-
-            finally:
-                # Clean up the uploaded file
-                if os.path.exists(image_path):
-                    os.remove(image_path)
-
+            print("No filename provided")
+            return jsonify({'error': 'No file selected'})
+        
+        if not file or not allowed_file(file.filename):
+            print(f"Invalid file type: {file.filename}")
+            return jsonify({'error': 'Invalid file type. Please upload an image file (JPG, PNG, JPEG)'})
+        
+        # Get test type from header
+        test_type = request.headers.get('X-Test-Type', '').lower()
+        print(f"Processing {test_type} test type")
+        
+        # Read and process the image
+        try:
+            img_bytes = file.read()
+            img = Image.open(io.BytesIO(img_bytes))
+            print("Image opened successfully")
+        except Exception as e:
+            print(f"Error opening image: {str(e)}")
+            return jsonify({'error': 'Error processing image file'})
+        
+        # Extract text using OCR
+        text = extract_text_from_image(img)
+        if not text:
+            print("No text extracted from image")
+            return jsonify({'error': 'Could not extract text from the image. Please try a clearer image.'})
+        
+        print("Extracted text:", text)  # Debug print
+        
+        # Extract fields based on test type
+        try:
+            if test_type == 'heart':
+                data = extract_medical_fields(text, 'heart')
+                print("Extracted heart data:", data)  # Debug print
+            elif test_type == 'liver':
+                data = extract_medical_fields(text, 'liver')
+                print("Extracted liver data:", data)  # Debug print
+            else:
+                print(f"Invalid test type: {test_type}")
+                return jsonify({'error': 'Invalid test type'})
+        except Exception as e:
+            print(f"Error extracting fields: {str(e)}")
+            return jsonify({'error': f'Error extracting data from image: {str(e)}'})
+        
+        if not data:
+            print("No data extracted")
+            return jsonify({'error': 'No data could be extracted from the image. Please ensure the image is clear and contains the required information.'})
+        
+        # Check for missing required fields
+        missing_fields = [field for field, value in data.items() if value == "Not found"]
+        if missing_fields:
+            print(f"Missing fields: {missing_fields}")
+            return jsonify({
+                'error': f'Some fields could not be extracted: {", ".join(missing_fields)}. Please fill them manually.',
+                'partial_data': data
+            })
+        
+        return jsonify({'data': data})
+        
     except Exception as e:
         print(f"Error in upload: {str(e)}")  # Debug print
-        return jsonify({'error': str(e)}), 500
+        traceback.print_exc()  # Print full traceback
+        return jsonify({'error': f'Error processing image: {str(e)}'}), 500
 
-@app.route("/heartpredict", methods=['POST', 'GET'])
+def allowed_file(filename):
+    ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+@app.route('/heartpredictPage', methods=['GET', 'POST'])
 def heartpredictPage():
+    if request.method == 'GET':
+        if request.args.get('results'):
+            prediction_data = session.get('prediction')
+            if prediction_data:
+                # Format prediction message based on risk level
+                risk_message = f"{prediction_data['risk_level']} Risk ({prediction_data['probability']}%)"
+                return render_template('heart_predict.html',
+                                    pred=risk_message,
+                                    diet=prediction_data['diet_recommendations'],
+                                    risk_percentage=prediction_data['probability'])
+        return render_template('heart.html')
+    
     try:
-        if request.method == 'POST':
-            to_predict_dict = request.form.to_dict()
-            
-            # Extract BMI and other values
-            bmi_display = to_predict_dict.get('bmi_display', None)
-            gender = float(to_predict_dict.get('Gender', to_predict_dict.get('sex', 0)))
-            age = float(to_predict_dict.get('Age', to_predict_dict.get('age', 0)))
+        # Get data from request
+        if request.is_json:
+            data = request.get_json()
+        else:
+            data = request.form.to_dict()
 
-            # Remove non-prediction fields
-            if 'bmi_display' in to_predict_dict:
-                del to_predict_dict['bmi_display']
-            if 'height' in to_predict_dict:
-                del to_predict_dict['height']
-            if 'weight' in to_predict_dict:
-                del to_predict_dict['weight']
+        # Validate required fields
+        required_fields = [
+            'Age', 'Gender', 'ChestPainType', 'RestingBP', 'Cholesterol',
+            'FastingBS', 'RestingECG', 'MaxHR', 'ExerciseAngina', 'Oldpeak',
+            'ST_Slope', 'MajorVessels', 'Thalassemia'
+        ]
+        
+        for field in required_fields:
+            if field not in data:
+                error_msg = f'Missing required field: {field}'
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return jsonify({'success': False, 'error': error_msg})
+                flash(error_msg, 'error')
+                return redirect(url_for('heartPage'))
 
-            # Convert values and predict
-            for key, value in to_predict_dict.items():
-                try:
-                    to_predict_dict[key] = float(value)
-                except ValueError:
-                    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                        return jsonify({
-                            'success': False,
-                            'error': f"Invalid value for {key}: {value}"
-                        })
-                    return render_template("home.html", message=f"Invalid value for {key}: {value}")
+        # Convert gender to numeric value
+        gender_value = data['Gender']
+        if isinstance(gender_value, str):
+            gender_value = 1 if gender_value.lower() in ['male', 'm', '1'] else 0
 
-            to_predict_list = list(map(float, list(to_predict_dict.values())))
-            
-            # Make prediction
-            prediction = heart_model.predict([to_predict_list])
-            probability = heart_model.predict_proba([to_predict_list])
-            
-            # Calculate risk level and percentage
-            risk_percentage = probability[0][1] * 100
-            if risk_percentage > 70:
-                risk_level = 'High'
-            elif risk_percentage > 30:
-                risk_level = 'Moderate'
-            else:
-                risk_level = 'Low'
-
-            prediction_result = {
-                'disease': 'Heart Disease',
-                'prediction': bool(prediction[0]),
-                'probability': risk_percentage,
-                'level': risk_level,
-                'message': f"Heart Disease {'Detected' if prediction[0] == 1 else 'Not Detected'} ({risk_level} Risk - {risk_percentage:.1f}%)"
-            }
-
-            # Calculate BMI category
-            bmi_category = None
-            bmi_value = None
-            if bmi_display:
-                try:
-                    bmi_value = float(bmi_display)
-                    if bmi_value < 18.5:
-                        bmi_category = "Underweight"
-                    elif bmi_value < 25:
-                        bmi_category = "Normal weight"
-                    elif bmi_value < 30:
-                        bmi_category = "Overweight"
-                    else:
-                        bmi_category = "Obese"
-                except ValueError:
-                    bmi_category = None
-
-            # Get diet recommendation
-            diet_recommendation = get_diet_recommendation(
-                'Heart Disease',
-                risk_level,
-                bmi_value,
-                gender,
-                age
-            )
-
-            # Check if it's an AJAX request
+        # Create prediction list in correct order
+        try:
+            to_predict_list = [
+                float(data['Age']),
+                float(gender_value),  # Use converted gender value
+                float(data['ChestPainType']),
+                float(data['RestingBP']),
+                float(data['Cholesterol']),
+                float(data['FastingBS']),
+                float(data['RestingECG']),
+                float(data['MaxHR']),
+                float(data['ExerciseAngina']),
+                float(data['Oldpeak']),
+                float(data['ST_Slope']),
+                float(data['MajorVessels']),
+                float(data['Thalassemia'])
+            ]
+        except ValueError as e:
+            error_msg = f'Invalid value in form data: {str(e)}'
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return jsonify({
-                    'success': True,
-                    'pred': prediction_result['message'],
-                    'diet': diet_recommendation,
-                    'bmi': bmi_display,
-                    'bmi_category': bmi_category,
-                    'risk_percentage': risk_percentage
-                })
+                return jsonify({'success': False, 'error': error_msg})
+            flash(error_msg, 'error')
+            return redirect(url_for('heartPage'))
+            
+        # Make prediction
+        prediction = heart_model.predict([to_predict_list])[0]
+        probability = heart_model.predict_proba([to_predict_list])[0][1]
+        risk_percentage = round(probability * 100, 2)
 
-            return render_template('heart_predict.html', 
-                                 pred=prediction_result['message'],
-                                 diet=diet_recommendation,
-                                 bmi=bmi_display,
-                                 bmi_category=bmi_category,
-                                 risk_percentage=risk_percentage)
+        # Determine risk level
+        if risk_percentage >= 70:
+            risk_level = "High"
+        elif risk_percentage >= 40:
+            risk_level = "Moderate"
+        else:
+            risk_level = "Low"
+
+        # Get diet recommendations
+        diet_recommendations = get_diet_recommendation(
+            'Heart Disease',
+            risk_level,
+            bmi=None,
+            gender=gender_value,  # Use converted gender value
+            age=float(data['Age'])
+        )
+
+        result = {
+            'success': True,
+            'prediction': int(prediction),
+            'probability': risk_percentage,
+            'risk_level': risk_level,
+            'diet_recommendations': diet_recommendations
+        }
+
+        # Store in session for GET request
+        session['prediction'] = result
+
+        # Return based on request type
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify(result)
+        
+        # For regular form submit, redirect to results page
+        return redirect(url_for('heartpredictPage', results=True))
 
     except Exception as e:
-        print(f"Error in heart prediction route: {str(e)}")
-        traceback.print_exc()
+        error_msg = f'Error processing prediction: {str(e)}'
+        print(f"Error in heart prediction: {str(e)}")
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({
-                'success': False,
-                'error': str(e)
-            })
-        return render_template("home.html", message=f"Error: {str(e)}")
-
-    return render_template('home.html')
+            return jsonify({'success': False, 'error': error_msg})
+        flash(error_msg, 'error')
+        return redirect(url_for('heartPage'))
 
 @app.route("/liverpredict", methods=['POST', 'GET'])
 def liverpredictPage():
@@ -941,7 +1036,10 @@ def liverpredictPage():
                 to_predict_dict['Aspartate_Aminotransferase'],
                 to_predict_dict['Total_Protiens'],
                 to_predict_dict['Albumin'],
-                to_predict_dict['Albumin_and_Globulin_Ratio']
+                to_predict_dict['Albumin_and_Globulin_Ratio'],
+                to_predict_dict['Height'],
+                to_predict_dict['Weight'],
+                to_predict_dict['BMI']
             ]
             
             # Make prediction
