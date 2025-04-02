@@ -1,4 +1,5 @@
 Flask
+Werkzeug==2.0.3
 numpy
 Pillow
 tensorflow

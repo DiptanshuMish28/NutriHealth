@@ -808,12 +808,16 @@ def upload():
         
         # Extract fields based on test type
         try:
+            test_type = test_type.lower()  # Convert to lowercase for case-insensitive comparison
             if test_type == 'heart':
                 data = extract_medical_fields(text, 'heart')
                 print("Extracted heart data:", data)  # Debug print
             elif test_type == 'liver':
                 data = extract_medical_fields(text, 'liver')
                 print("Extracted liver data:", data)  # Debug print
+            elif test_type == 'diabetes':  # Add diabetes case
+                data = extract_medical_fields(text, 'diabetes')
+                print("Extracted diabetes data:", data)  # Debug print
             else:
                 print(f"Invalid test type: {test_type}")
                 return jsonify({'error': 'Invalid test type'})

@@ -243,14 +243,14 @@ def extract_medical_fields(extracted_text, test_type='liver'):
         extracted_text = extracted_text.upper()
         
         patterns = {
-            "Pregnancies": r"PREGNANCIES:\s*(\d+)",
-            "Glucose": r"GLUCOSE:\s*(\d+)(?:\s*MG/DL)?",
-            "BloodPressure": r"BLOOD PRESSURE:\s*(\d+)(?:\s*MM HG)?",
-            "SkinThickness": r"SKIN THICKNESS:\s*(\d+)(?:\s*MM)?",
-            "Insulin": r"INSULIN:\s*(\d+)(?:\s*[µU]/ML)?",
-            "BMI": r"BMI:\s*([\d.]+)",
-            "DiabetesPedigreeFunction": r"DIABETES PEDIGREE FUNCTION:\s*([\d.]+)",
-            "Age": r"AGE:\s*(\d+)(?:\s*YEARS)?"
+            "Pregnancies": r"PREGNANCIES\s*[:\-\s]\s*(\d+)",
+            "Glucose": r"GLUCOSE\s*[:\-\s]\s*([\d.]+)",
+            "BloodPressure": r"BLOOD PRESSURE\s*[:\-\s]\s*([\d.]+)",
+            "SkinThickness": r"SKIN THICKNESS\s*[:\-\s]\s*([\d.]+)",
+            "Insulin": r"INSULIN\s*[:\-\s]\s*([\d.]+)",
+            "BMI": r"BMI\s*[:\-\s]\s*([\d.]+)",
+            "DiabetesPedigreeFunction": r"DIABETES PEDIGREE FUNCTION\s*[:\-\s]\s*([\d.]+)",
+            "Age": r"AGE\s*[:\-\s]\s*(\d+)"
         }
 
         extracted_values = {}
@@ -263,9 +263,7 @@ def extract_medical_fields(extracted_text, test_type='liver'):
                 try:
                     if field in ['Pregnancies', 'Age']:
                         value = str(int(value))
-                    elif field in ['Glucose', 'BloodPressure', 'SkinThickness', 'Insulin']:
-                        value = str(int(re.sub(r'[^\d]', '', value)))
-                    elif field in ['BMI', 'DiabetesPedigreeFunction']:
+                    else:
                         value = str(float(value))
                     
                     extracted_values[field] = value
@@ -282,7 +280,7 @@ def extract_medical_fields(extracted_text, test_type='liver'):
         
         return extracted_values
 
-    return {}  # Return empty dict if test type is not recognized
+    return None  # Return None for unknown test types
 
 # Route to handle file upload and extraction
 @app.route('/upload', methods=['POST'])
