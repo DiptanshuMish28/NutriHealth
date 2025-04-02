@@ -32,6 +32,13 @@ except Exception as e:
     print(f"Error loading diabetes model: {str(e)}")
     diabetes_model = None
 
+# Load the pneumonia model at startup
+try:
+    pneumonia_model = tf.keras.models.load_model("models/trained.h5")
+except Exception as e:
+    print(f"Error loading pneumonia model: {str(e)}")
+    pneumonia_model = None
+
 app = Flask(__name__)
 #app.secret_key = 'your_secret_key_here'  # Required for flash messages
 
@@ -732,40 +739,59 @@ def malariapredictPage():
 
 @app.route("/pneumoniapredict", methods=['POST', 'GET'])
 def pneumoniapredictPage():
+    if request.method == 'GET':
+        return redirect(url_for('pneumoniaPage'))
+        
     try:
-        if request.method == 'POST':
-            if 'image' not in request.files:
-                return render_template('pneumonia.html', message='No file selected')
+        if 'image' not in request.files:
+            flash('No file selected', 'error')
+            return redirect(url_for('pneumoniaPage'))
+        
+        file = request.files['image']
+        if file.filename == '':
+            flash('No file selected', 'error')
+            return redirect(url_for('pneumoniaPage'))
+
+        # Check if model is loaded
+        if pneumonia_model is None:
+            flash('Model not available. Please try again later.', 'error')
+            return redirect(url_for('pneumoniaPage'))
+
+        # Process image and get prediction
+        try:
+            # Read and preprocess image
+            image = Image.open(file.stream)
+            image = image.convert('RGB')  # Convert to RGB
+            image = image.resize((300, 300))  # Resize to match model's expected input
             
-            file = request.files['image']
-            if file.filename == '':
-                return render_template('pneumonia.html', message='No file selected')
+            # Convert to numpy array and normalize
+            img_array = np.array(image)
+            img_array = img_array / 255.0
+            img_array = np.expand_dims(img_array, axis=0)  # Add batch dimension
 
-            # Process image and get prediction
-            try:
-                image = Image.open(file.stream)
-                image = image.convert('RGB')  # Convert to RGB
-                image = image.resize((300, 300))  # Resize to match model's expected input
-                
-                # Convert to numpy array and normalize
-                img_array = np.array(image)
-                img_array = img_array / 255.0
-                img_array = np.expand_dims(img_array, axis=0)  # Add batch dimension
-
-                # Load model and predict
-                model = tf.keras.models.load_model("models/trained.h5")
-                pred = model.predict(img_array)
-                pred = "Pneumonia Detected" if pred[0][0] > 0.5 else "Normal"
-                
-                return render_template('pneumonia_predict.html', pred=pred)
-                
-            except Exception as e:
-                print(f"Error processing image: {str(e)}")
-                return render_template('pneumonia.html', message=f'Error processing image: {str(e)}')
+            # Make prediction
+            prediction = pneumonia_model.predict(img_array)
+            probability = float(prediction[0][0])  # Convert to Python float
+            
+            # Determine result
+            is_pneumonia = probability > 0.5
+            result_message = "Pneumonia Detected" if is_pneumonia else "Normal"
+            
+            # Return results template directly
+            return render_template('pneumonia_predict.html',
+                                pred=result_message)
+            
+        except Exception as e:
+            print(f"Error processing image: {str(e)}")
+            traceback.print_exc()
+            flash('Error processing image. Please ensure you uploaded a valid chest X-ray image.', 'error')
+            return redirect(url_for('pneumoniaPage'))
 
     except Exception as e:
         print(f"Error in prediction route: {str(e)}")
-        return render_template('pneumonia.html', message=f'Error: {str(e)}')
+        traceback.print_exc()
+        flash('An error occurred. Please try again.', 'error')
+        return redirect(url_for('pneumoniaPage'))
 
     return render_template('pneumonia.html')
 
@@ -804,20 +830,20 @@ def upload():
             print("No text extracted from image")
             return jsonify({'error': 'Could not extract text from the image. Please try a clearer image.'})
         
-        print("Extracted text:", text)  # Debug print
+        print("Extracted text:", text)
         
         # Extract fields based on test type
         try:
             test_type = test_type.lower()  # Convert to lowercase for case-insensitive comparison
             if test_type == 'heart':
                 data = extract_medical_fields(text, 'heart')
-                print("Extracted heart data:", data)  # Debug print
+                print("Extracted heart data:", data)
             elif test_type == 'liver':
                 data = extract_medical_fields(text, 'liver')
-                print("Extracted liver data:", data)  # Debug print
-            elif test_type == 'diabetes':  # Add diabetes case
+                print("Extracted liver data:", data)
+            elif test_type == 'diabetes':
                 data = extract_medical_fields(text, 'diabetes')
-                print("Extracted diabetes data:", data)  # Debug print
+                print("Extracted diabetes data:", data)
             else:
                 print(f"Invalid test type: {test_type}")
                 return jsonify({'error': 'Invalid test type'})
@@ -829,20 +855,13 @@ def upload():
             print("No data extracted")
             return jsonify({'error': 'No data could be extracted from the image. Please ensure the image is clear and contains the required information.'})
         
-        # Check for missing required fields
-        missing_fields = [field for field, value in data.items() if value == "Not found"]
-        if missing_fields:
-            print(f"Missing fields: {missing_fields}")
-            return jsonify({
-                'error': f'Some fields could not be extracted: {", ".join(missing_fields)}. Please fill them manually.',
-                'partial_data': data
-            })
-        
+        # Always return the data, even if some fields are "Not found"
+        # This allows partial population of the form
         return jsonify({'data': data})
         
     except Exception as e:
-        print(f"Error in upload: {str(e)}")  # Debug print
-        traceback.print_exc()  # Print full traceback
+        print(f"Error in upload: {str(e)}")
+        traceback.print_exc()
         return jsonify({'error': f'Error processing image: {str(e)}'}), 500
 
 def allowed_file(filename):
@@ -975,8 +994,6 @@ def liverpredictPage():
                     return render_template('liver_predict.html',
                                          pred=data.get('pred', ''),
                                          diet=data.get('diet', []),
-                                         bmi=data.get('bmi', ''),
-                                         bmi_category=data.get('bmi_category', ''),
                                          risk_percentage=data.get('risk_percentage', 0))
                 except json.JSONDecodeError:
                     pass
@@ -989,18 +1006,11 @@ def liverpredictPage():
             else:
                 to_predict_dict = request.form.to_dict()
             
-            # Extract BMI and other values
-            bmi_display = to_predict_dict.get('bmi_display', None)
+            # Extract gender and age
             gender = to_predict_dict.get('Gender', '0')  # Default to '0' if not provided
             age = float(to_predict_dict.get('Age', 0))
 
-            # Remove non-prediction fields
-            if 'bmi_display' in to_predict_dict:
-                del to_predict_dict['bmi_display']
-            if 'height' in to_predict_dict:
-                del to_predict_dict['height']
-            if 'weight' in to_predict_dict:
-                del to_predict_dict['weight']
+            # Remove disease_type if present
             if 'disease_type' in to_predict_dict:
                 del to_predict_dict['disease_type']
 
@@ -1027,7 +1037,7 @@ def liverpredictPage():
                     })
 
             # Convert gender to numeric value
-            gender = 1 if gender.lower() in ['male', 'm'] else 0
+            gender = 1 if str(gender).lower() in ['male', 'm', '1'] else 0
 
             # Create prediction list in the correct order
             to_predict_list = [
@@ -1040,10 +1050,7 @@ def liverpredictPage():
                 to_predict_dict['Aspartate_Aminotransferase'],
                 to_predict_dict['Total_Protiens'],
                 to_predict_dict['Albumin'],
-                to_predict_dict['Albumin_and_Globulin_Ratio'],
-                to_predict_dict['Height'],
-                to_predict_dict['Weight'],
-                to_predict_dict['BMI']
+                to_predict_dict['Albumin_and_Globulin_Ratio']
             ]
             
             # Make prediction
@@ -1067,30 +1074,13 @@ def liverpredictPage():
                 'message': f"Risk of Liver Disease: {risk_percentage:.1f}%"
             }
 
-            # Calculate BMI category
-            bmi_category = None
-            bmi_value = None
-            if bmi_display:
-                try:
-                    bmi_value = float(bmi_display)
-                    if bmi_value < 18.5:
-                        bmi_category = "Underweight"
-                    elif bmi_value < 25:
-                        bmi_category = "Normal weight"
-                    elif bmi_value < 30:
-                        bmi_category = "Overweight"
-                    else:
-                        bmi_category = "Obese"
-                except ValueError:
-                    bmi_category = None
-
             # Get diet recommendation
             diet_recommendation = get_diet_recommendation(
                 'Liver Disease',
                 risk_level,
-                bmi_value,
-                gender,
-                age
+                bmi=None,  # BMI not available for liver test
+                gender=gender,
+                age=age
             )
 
             # Check if it's an AJAX request
@@ -1099,16 +1089,12 @@ def liverpredictPage():
                     'success': True,
                     'pred': prediction_result['message'],
                     'diet': diet_recommendation,
-                    'bmi': bmi_display,
-                    'bmi_category': bmi_category,
                     'risk_percentage': risk_percentage
                 })
 
             return render_template('liver_predict.html', 
                                  pred=prediction_result['message'],
                                  diet=diet_recommendation,
-                                 bmi=bmi_display,
-                                 bmi_category=bmi_category,
                                  risk_percentage=risk_percentage)
 
     except Exception as e:

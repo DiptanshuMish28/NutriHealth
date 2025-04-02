@@ -2,311 +2,248 @@
 {% block content %}
 
 <style>
-    .input-form {
+    .form-container {
         max-width: 800px;
         margin: 0 auto;
+        padding: 20px;
+    }
+
+    .upload-section {
+        background-color: #fff;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
 
     .form-section {
-        background-color: var(--card-bg);
-        border-radius: 15px;
-        padding: 2rem;
-        margin-bottom: 2rem;
-        border: 1px solid rgba(255,255,255,0.1);
+        background-color: #fff;
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
 
-    .form-section h4 {
-        color: var(--text-color);
-        margin-bottom: 1.5rem;
-        font-size: 1.25rem;
+    .section-title {
+        color: #333;
+        margin-bottom: 20px;
+        font-size: 1.5rem;
     }
 
-    .form-control {
-        background-color: rgba(255,255,255,0.05);
-        border: 1px solid rgba(255,255,255,0.1);
-        color: var(--text-color);
-        padding: 0.75rem 1rem;
-        border-radius: 8px;
-        transition: all 0.3s ease;
-    }
-
-    .form-control:focus {
-        background-color: rgba(255,255,255,0.1);
-        border-color: var(--secondary-color);
-        box-shadow: 0 0 0 2px rgba(0,166,81,0.25);
-        color: var(--text-color);
-    }
-
-    .form-control::placeholder {
-        color: rgba(255,255,255,0.5);
-    }
-
-    .form-group {
-        margin-bottom: 1.25rem;
+    .file-upload {
+        border: 2px dashed #ccc;
+        padding: 20px;
+        text-align: center;
+        margin-bottom: 20px;
+        border-radius: 5px;
+        cursor: pointer;
         position: relative;
     }
 
-    .form-group label {
-        color: var(--text-color);
-        margin-bottom: 0.5rem;
-        display: block;
-        font-size: 0.9rem;
-        opacity: 0.8;
-    }
-
-    .input-group {
-        margin-bottom: 1.25rem;
-    }
-
-    .input-group-text {
-        background-color: rgba(255,255,255,0.05);
-        border: 1px solid rgba(255,255,255,0.1);
-        color: var(--text-color);
-    }
-
-    .btn-upload {
-        background-color: rgba(255,255,255,0.05);
-        border: 2px dashed rgba(255,255,255,0.2);
-        color: var(--text-color);
-        padding: 2rem;
-        border-radius: 10px;
-        text-align: center;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        margin-bottom: 1rem;
-    }
-
-    .btn-upload:hover {
-        border-color: var(--secondary-color);
-        background-color: rgba(255,255,255,0.1);
-    }
-
-    .btn-upload i {
-        font-size: 2rem;
-        color: var(--secondary-color);
-        margin-bottom: 1rem;
+    .file-upload:hover {
+        border-color: #00A651;
     }
 
     .file-input {
-        display: none;
-    }
-
-    .btn-predict {
-        background-color: var(--secondary-color);
-        color: white;
-        padding: 1rem 2rem;
-        border-radius: 25px;
-        border: none;
-        font-weight: 500;
+        position: absolute;
+        top: 0;
+        left: 0;
         width: 100%;
-        transition: all 0.3s ease;
+        height: 100%;
+        opacity: 0;
+        cursor: pointer;
     }
 
-    .btn-predict:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    .form-group {
+        margin-bottom: 15px;
     }
 
-    .form-hint {
-        color: var(--text-color);
-        opacity: 0.6;
-        font-size: 0.8rem;
-        margin-top: 0.25rem;
+    .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        color: #555;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+
+    .form-control:focus {
+        border-color: #00A651;
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(0, 166, 81, 0.25);
+    }
+
+    .btn-extract, .btn-predict {
+        background-color: #00A651;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        width: 100%;
+        font-size: 16px;
+    }
+
+    .btn-extract:hover, .btn-predict:hover {
+        background-color: #008c44;
+    }
+
+    .btn-extract:disabled, .btn-predict:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
     }
 
     .radio-group {
         display: flex;
-        gap: 1rem;
-        margin-top: 0.5rem;
+        gap: 15px;
     }
 
     .radio-option {
-        background-color: rgba(255,255,255,0.05);
-        border: 1px solid rgba(255,255,255,0.1);
-        border-radius: 8px;
-        padding: 0.75rem 1.5rem;
-        cursor: pointer;
-        transition: all 0.3s ease;
         flex: 1;
         text-align: center;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        cursor: pointer;
     }
 
-    .radio-option:hover {
-        background-color: rgba(255,255,255,0.1);
+    .radio-option.selected {
+        border-color: #00A651;
+        background-color: rgba(0, 166, 81, 0.1);
     }
 
     .radio-option input[type="radio"] {
         display: none;
     }
-
-    .radio-option input[type="radio"]:checked + label {
-        color: var(--secondary-color);
-    }
-
-    .radio-option.selected {
-        border-color: var(--secondary-color);
-        background-color: rgba(0,166,81,0.1);
-}
 </style>
 
-<div class="container py-4">
-    <div class="input-form">
-        <h2 class="text-center mb-4">
-            <i class="fas fa-liver me-2"></i>
-            Liver Disease Risk Assessment
-        </h2>
-        
-        <!-- Upload File Section -->
-        <div class="form-section">
-            <h4>
-                <i class="fas fa-upload me-2"></i>
-                Upload Medical Report
-            </h4>
-            <form id="uploadForm">
-                <label class="btn-upload d-block mb-3" for="fileUpload">
-                    <i class="fas fa-cloud-upload-alt d-block mb-2"></i>
-                    <span>Drop your file here or click to upload</span>
-                    <input type="file" id="fileUpload" name="file" accept="image/*" class="file-input" required>
-                </label>
-                <button type="submit" class="btn btn-predict">
-                    <i class="fas fa-magic me-2"></i>Extract Data
-                </button>
-            </form>
-        </div>
+<div class="form-container">
+    <div class="upload-section">
+        <h3 class="section-title">Upload Medical Report</h3>
+        <form id="uploadForm">
+            <div class="file-upload">
+                <input type="file" id="fileUpload" accept="image/*" class="file-input">
+                <div id="dropZone">
+                    <i class="fas fa-cloud-upload-alt fa-2x mb-2"></i>
+                    <p>Click to select a file</p>
+                </div>
+            </div>
+            <button type="submit" id="extractButton" class="btn-extract">
+                <i class="fas fa-magic me-2"></i>Extract Data
+            </button>
+        </form>
+    </div>
 
-        <!-- Input Form -->
-        <div class="form-section">
-            <h4>
-                <i class="fas fa-clipboard-list me-2"></i>
-                Health Metrics
-            </h4>
-            <form id="liverForm" class="form-horizontal">
-                <input type="hidden" name="disease_type" value="Liver">
-                
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label>Age (years)</label>
-                            <input class="form-control" type="number" name="Age" required>
-                        </div>
+    <div class="form-section">
+        <h3 class="section-title">Liver Disease Risk Assessment</h3>
+        <form id="liverForm">
+            <input type="hidden" name="disease_type" value="Liver">
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Age</label>
+                        <input type="number" class="form-control" name="Age" required>
                     </div>
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label>Gender</label>
-                            <div class="radio-group">
-                                <div class="radio-option">
-                                    <input type="radio" id="male" name="Gender" value="Male" required>
-                                    <label for="male">Male</label>
-                                </div>
-                                <div class="radio-option">
-                                    <input type="radio" id="female" name="Gender" value="Female">
-                                    <label for="female">Female</label>
-                                </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Gender</label>
+                        <div class="radio-group">
+                            <div class="radio-option">
+                                <input type="radio" id="male" name="Gender" value="Male" required>
+                                <label for="male">Male</label>
+                            </div>
+                            <div class="radio-option">
+                                <input type="radio" id="female" name="Gender" value="Female">
+                                <label for="female">Female</label>
                             </div>
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label>Total Bilirubin</label>
-                            <input class="form-control" type="number" step="0.01" name="Total_Bilirubin" required>
-                            <div class="form-hint">Normal range: 0.3-1.2 mg/dL</div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label>Direct Bilirubin</label>
-                            <input class="form-control" type="number" step="0.01" name="Direct_Bilirubin" required>
-                            <div class="form-hint">Normal range: 0.0-0.3 mg/dL</div>
-                        </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Total Bilirubin</label>
+                        <input type="number" step="0.01" class="form-control" name="Total_Bilirubin" required>
                     </div>
                 </div>
-
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label>Alkaline Phosphatase</label>
-                            <input class="form-control" type="number" step="0.01" name="Alkaline_Phosphotase" required>
-                            <div class="form-hint">Normal range: 44-147 IU/L</div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label>Alamine Aminotransferase</label>
-                            <input class="form-control" type="number" step="0.01" name="Alamine_Aminotransferase" required>
-                            <div class="form-hint">Normal range: 7-56 U/L</div>
-                        </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Direct Bilirubin</label>
+                        <input type="number" step="0.01" class="form-control" name="Direct_Bilirubin" required>
                     </div>
                 </div>
+            </div>
 
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label>Aspartate Aminotransferase</label>
-                            <input class="form-control" type="number" step="0.01" name="Aspartate_Aminotransferase" required>
-                            <div class="form-hint">Normal range: 10-40 U/L</div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label>Total Proteins</label>
-                            <input class="form-control" type="number" step="0.01" name="Total_Protiens" required>
-                            <div class="form-hint">Normal range: 6.0-8.3 g/dL</div>
-                        </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Alkaline Phosphatase</label>
+                        <input type="number" step="0.01" class="form-control" name="Alkaline_Phosphotase" required>
                     </div>
                 </div>
-
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label>Albumin</label>
-                            <input class="form-control" type="number" step="0.01" name="Albumin" required>
-                            <div class="form-hint">Normal range: 3.5-5.0 g/dL</div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label>Albumin/Globulin Ratio</label>
-                            <input class="form-control" type="number" step="0.01" name="Albumin_and_Globulin_Ratio" required>
-                            <div class="form-hint">Normal range: 1.1-2.5</div>
-                        </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Alamine Aminotransferase</label>
+                        <input type="number" step="0.01" class="form-control" name="Alamine_Aminotransferase" required>
                     </div>
                 </div>
+            </div>
 
-                <button type="submit" class="btn-predict mt-4">
-                    <i class="fas fa-calculator me-2"></i>Calculate Risk
-                </button>
-            </form>
-        </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Aspartate Aminotransferase</label>
+                        <input type="number" step="0.01" class="form-control" name="Aspartate_Aminotransferase" required>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Total Proteins</label>
+                        <input type="number" step="0.01" class="form-control" name="Total_Protiens" required>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Albumin</label>
+                        <input type="number" step="0.01" class="form-control" name="Albumin" required>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Albumin/Globulin Ratio</label>
+                        <input type="number" step="0.01" class="form-control" name="Albumin_and_Globulin_Ratio" required>
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-predict">
+                <i class="fas fa-calculator me-2"></i>Calculate Risk
+            </button>
+        </form>
     </div>
 </div>
 
 <script>
-    // Add BMI calculation
-function calculateBMI() {
-        const height = parseFloat(document.querySelector('input[name="Height"]').value);
-        const weight = parseFloat(document.querySelector('input[name="Weight"]').value);
-        const bmiInput = document.querySelector('input[name="BMI"]');
-    
-    if (height && weight) {
-        const heightInMeters = height / 100;
-            const bmi = weight / (heightInMeters * heightInMeters);
-            bmiInput.value = bmi.toFixed(2);
-        }
-    }
-
-    // Add event listeners for BMI calculation
-    document.querySelector('input[name="Height"]').addEventListener('input', calculateBMI);
-    document.querySelector('input[name="Weight"]').addEventListener('input', calculateBMI);
-
     // File upload preview
     document.getElementById('fileUpload').addEventListener('change', function(e) {
         const fileName = e.target.files[0]?.name;
         if (fileName) {
-            const label = this.closest('.btn-upload').querySelector('span');
-            label.textContent = fileName;
+            const dropZone = document.getElementById('dropZone');
+            dropZone.innerHTML = `
+                <i class="fas fa-file-alt fa-2x mb-2"></i>
+                <p>Selected file: ${fileName}</p>
+            `;
         }
     });
 
@@ -316,64 +253,112 @@ function calculateBMI() {
             const radio = this.querySelector('input[type="radio"]');
             radio.checked = true;
             
-            // Update selected state for the group
+            // Update selected state
             const groupOptions = this.closest('.radio-group').querySelectorAll('.radio-option');
             groupOptions.forEach(opt => opt.classList.remove('selected'));
             this.classList.add('selected');
         });
     });
 
-    // Populate fields with extracted OCR data
-    function populateFields(data) {
-        for (const [key, value] of Object.entries(data)) {
-            const field = document.querySelector(`[name="${key}"]`);
-            if (field && value !== "Not found") {
-                if (field.type === 'radio') {
-                    const radio = document.querySelector(`input[name="${key}"][value="${value}"]`);
-                    if (radio) {
-                        radio.checked = true;
-                        radio.closest('.radio-option').classList.add('selected');
-                    }
-                } else {
-                    field.value = value;
-                }
-            }
-        }
-    }
-
     // Handle file upload and OCR extraction
-    document.getElementById("uploadForm").addEventListener("submit", function(event) {
+    document.getElementById("uploadForm").addEventListener("submit", async function(event) {
         event.preventDefault();
         const fileInput = document.getElementById("fileUpload");
+        
+        if (!fileInput.files || !fileInput.files[0]) {
+            alert("Please select a file first");
+            return;
+        }
+
         const formData = new FormData();
         formData.append("file", fileInput.files[0]);
 
-        fetch("/upload", { 
-            method: "POST", 
-            body: formData,
-            headers: {
-                'X-Test-Type': 'liver'
-            }
-        })
-        .then(response => {
+        // Show loading state
+        const submitButton = this.querySelector('button[type="submit"]');
+        submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Extracting...';
+        submitButton.disabled = true;
+
+        try {
+            console.log("Starting file upload...");
+            const response = await fetch("/upload", {
+                method: "POST",
+                body: formData,
+                headers: {
+                    'X-Test-Type': 'liver'
+                }
+            });
+
             if (!response.ok) {
-                return response.text().then(text => { throw new Error(text); });
+                throw new Error(await response.text());
             }
-            return response.json();
-        })
-        .then(data => {
-            console.log("Received data:", data);
+
+            const data = await response.json();
+            console.log("Received data from server:", data);
+
             if (data.data) {
-                populateFields(data.data);
-                alert("Data extracted successfully!");
+                console.log("Starting to populate form fields...");
+                
+                // Clear existing form values first
+                const form = document.getElementById('liverForm');
+                form.reset();
+                document.querySelectorAll('.radio-option').forEach(opt => opt.classList.remove('selected'));
+                
+                // Populate each field
+                for (const [key, value] of Object.entries(data.data)) {
+                    console.log(`Attempting to populate ${key} with value:`, value);
+                    
+                    if (value === "Not found" || value === null || value === undefined) {
+                        console.log(`Skipping ${key} as value is not valid`);
+                        continue;
+                    }
+
+                    if (key === 'Gender') {
+                        const genderValue = value.toLowerCase().trim();
+                        console.log(`Setting gender to: ${genderValue}`);
+                        
+                        if (genderValue === 'male' || genderValue === 'm') {
+                            const maleRadio = document.getElementById('male');
+                            maleRadio.checked = true;
+                            maleRadio.closest('.radio-option').classList.add('selected');
+                            console.log('Male radio button selected');
+                        } else if (genderValue === 'female' || genderValue === 'f') {
+                            const femaleRadio = document.getElementById('female');
+                            femaleRadio.checked = true;
+                            femaleRadio.closest('.radio-option').classList.add('selected');
+                            console.log('Female radio button selected');
+                        }
+                    } else {
+                        const input = form.querySelector(`input[name="${key}"]`);
+                        if (input) {
+                            // Convert string numbers to actual numbers for number inputs
+                            if (input.type === 'number') {
+                                const numValue = parseFloat(value);
+                                if (!isNaN(numValue)) {
+                                    input.value = numValue;
+                                    console.log(`Set ${key} to number value: ${numValue}`);
+                                }
+                            } else {
+                                input.value = value;
+                                console.log(`Set ${key} to value: ${value}`);
+                            }
+                        } else {
+                            console.log(`Could not find input field for ${key}`);
+                        }
+                    }
+                }
+                console.log("Form population complete!");
+                alert("Data extracted and populated successfully!");
             } else {
-                alert("Error: " + (data.error || "Invalid response format"));
+                throw new Error(data.error || "No data received from server");
             }
-        })
-        .catch(error => {
-            console.error('Error:', error);
+        } catch (error) {
+            console.error('Error during upload/extraction:', error);
             alert("Upload failed! " + error.message);
-        });
+        } finally {
+            // Reset button state
+            submitButton.innerHTML = '<i class="fas fa-magic me-2"></i>Extract Data';
+            submitButton.disabled = false;
+        }
     });
 
     // Handle form submission
@@ -392,19 +377,14 @@ function calculateBMI() {
         // Convert form data to JSON
         const formDataObj = {};
         formData.forEach((value, key) => {
-            // Handle numeric fields
             if (['Age', 'Total_Bilirubin', 'Direct_Bilirubin', 'Alkaline_Phosphotase', 
                  'Alamine_Aminotransferase', 'Aspartate_Aminotransferase', 
-                 'Total_Protiens', 'Albumin', 'Albumin_and_Globulin_Ratio',
-                 'Height', 'Weight', 'BMI'].includes(key)) {
+                 'Total_Protiens', 'Albumin', 'Albumin_and_Globulin_Ratio'].includes(key)) {
                 formDataObj[key] = parseFloat(value);
             } else {
                 formDataObj[key] = value;
             }
         });
-
-        // Ensure BMI is calculated before sending
-        calculateBMI();
 
         // Send form data
         fetch("{{ url_for('liverpredictPage') }}", {

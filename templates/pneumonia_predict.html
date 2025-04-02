@@ -1,29 +1,92 @@
 {% extends 'main.html' %}
 {% block content %}
+
 <style>
-body {
-    font-family: Cambria;
-    height: 100%;
-    background-image: linear-gradient(#4e0374, #c37ee6);
-    margin: 0;
-    background-repeat: no-repeat;
-    background-attachment: fixed;
-}
+    .result-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .result-section {
+        background-color: #fff;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .section-title {
+        color: #333;
+        margin-bottom: 20px;
+        font-size: 1.5rem;
+    }
+
+    .result-card {
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+
+    .result-heading {
+        font-size: 1.2rem;
+        color: #333;
+        margin-bottom: 15px;
+    }
+
+    .btn-action {
+        background-color: #00A651;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        margin-top: 20px;
+    }
+
+    .btn-action:hover {
+        background-color: #008c44;
+        color: white;
+    }
 </style>
-    <div class="row"  style="margin-bottom: 477px;">
-        <div class="col-md-3"></div>
-        <div class="col-md-6">
-            {% if pred == 1 %}
-                <div class="card card-body alert alert-danger"><center>POSITIVE. The patient might have the disease.</center></div>
-            {% else %}
-                <div class="card card-body alert alert-success"><center>NEGATIVE. The patient is healthy.</center></div>
-            {% endif %}
-            <div class="row">
-                <div class="col-md-4"></div>
-                <div class="col-md-4"><a href="{{ url_for('home') }}" class="btn btn-block btn-primary" style="background-color: #4e0374">Back to Home</a></div>
-                <div class="col-md-4"></div>
+
+<div class="result-container">
+    <div class="result-section">
+        <h3 class="section-title">
+            <i class="fas fa-lungs me-2"></i>Pneumonia Detection Results
+        </h3>
+        
+        <div class="result-card">
+            <h4 class="result-heading">
+                {{ pred }}
+            </h4>
+
+            <p class="mt-4">
+                <strong>What does this mean?</strong><br>
+                {% if pred == 'Pneumonia Detected' %}
+                Based on the analysis of your chest X-ray, there are indicators of pneumonia. It is recommended to consult a healthcare professional for proper diagnosis and treatment.
+                {% else %}
+                The analysis suggests normal lung conditions. However, if you're experiencing symptoms, it's still recommended to consult with a healthcare provider.
+                {% endif %}
+            </p>
+
+            <div class="mt-4">
+                <h5>Important Notes:</h5>
+                <ul>
+                    <li>Always consult with a healthcare professional for proper diagnosis</li>
+                    <li>This tool is for screening purposes only and should not be used as a final diagnosis</li>
+                    <li>Regular check-ups are important for maintaining respiratory health</li>
+                </ul>
             </div>
         </div>
-        <div class="col-md-3"></div>
+
+        <a href="/pneumonia" class="btn-action">
+            <i class="fas fa-redo me-2"></i>Analyze Another X-ray
+        </a>
     </div>
+</div>
+
 {% endblock %}

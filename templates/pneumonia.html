@@ -1,53 +1,207 @@
 {% extends 'main.html' %}
 {% block content %}
+
 <style>
-body {
-    font-family: Cambria;
-    height: 100%;
-    background-image: linear-gradient(#4e0374, #c37ee6);
-    margin: 0;
-    background-repeat: no-repeat;
-    background-attachment: fixed;
-}
+    .form-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .upload-section {
+        background-color: #fff;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .form-section {
+        background-color: #fff;
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .section-title {
+        color: #333;
+        margin-bottom: 20px;
+        font-size: 1.5rem;
+    }
+
+    .file-upload {
+        border: 2px dashed #ccc;
+        padding: 20px;
+        text-align: center;
+        margin-bottom: 20px;
+        border-radius: 5px;
+        cursor: pointer;
+        position: relative;
+    }
+
+    .file-upload:hover {
+        border-color: #00A651;
+    }
+
+    .file-input {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        cursor: pointer;
+    }
+
+    .btn-extract {
+        background-color: #00A651;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        width: 100%;
+        font-size: 16px;
+    }
+
+    .btn-extract:hover {
+        background-color: #008c44;
+    }
+
+    .btn-extract:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
+    }
+
+    .preview-image {
+        max-width: 100%;
+        max-height: 300px;
+        margin-top: 10px;
+        border-radius: 5px;
+        display: none;
+    }
+
+    .error-message {
+        color: #dc3545;
+        margin-top: 10px;
+        display: none;
+    }
+
+    .success-message {
+        color: #28a745;
+        margin-top: 10px;
+        display: none;
+    }
 </style>
-<script>
-    function readURL(input) {
-            if (input.files && input.files[0]) {
-                var reader = new FileReader();
 
-                reader.onload = function (e) {
-                    $('#blah')
-                        .attr('src', e.target.result)
-                        .width(500)
-                        .height(500);
-                };
-
-                reader.readAsDataURL(input.files[0]);
-            }
-        }
-</script>
-{% if message %}
-        <div class="alert alert-danger">{{ message }}</div>
-    {% endif %}
-<div class="row" style="margin-bottom: 300px;">
-    <div class="col-md-3"></div>
-    <div class="col-md-6">
-        <center><h1 style="color:white;">Pneumonia Predictor</h1></center>
-        <div class="card card-body" style="background-color: #daa8f4">
-            <center><h3>Please upload the X-Ray of Person</h3></center>
-            <form class="form-horizontal" action="{{ url_for('pneumoniapredictPage') }}" method="POST" enctype="multipart/form-data">
-                <center>
-                <input style="text-align: center;" onchange="readURL(this);" type="file" name="image" placeholder="Upload Image">
-                <br>
-                <br>
-                <img class="img-fluid" id="blah" src="#" alt="Uploaded image will appear here" />
-                <br>
-                <br>
-                <input style="background-color: #4e0374" class="btn btn-info" type="submit">
-                </center>
-            </form>
-        </div>
+<div class="form-container">
+    <div class="upload-section">
+        <h3 class="section-title">
+            <i class="fas fa-lungs me-2"></i>Pneumonia Detection
+        </h3>
+        <form id="uploadForm" enctype="multipart/form-data">
+            <div class="file-upload">
+                <input type="file" id="fileUpload" accept="image/*" class="file-input">
+                <div id="dropZone">
+                    <i class="fas fa-cloud-upload-alt fa-2x mb-2"></i>
+                    <p>Click to select a chest X-ray image</p>
+                </div>
+            </div>
+            <img id="previewImage" class="preview-image" alt="Preview">
+            <p id="errorMessage" class="error-message"></p>
+            <p id="successMessage" class="success-message"></p>
+            <button type="submit" id="extractButton" class="btn-extract">
+                <i class="fas fa-search me-2"></i>Analyze X-ray
+            </button>
+        </form>
     </div>
-    <div class="col-md-3"></div>
 </div>
+
+<script>
+    document.getElementById('fileUpload').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        const dropZone = document.getElementById('dropZone');
+        const previewImage = document.getElementById('previewImage');
+        const errorMessage = document.getElementById('errorMessage');
+        const successMessage = document.getElementById('successMessage');
+        const extractButton = document.getElementById('extractButton');
+
+        if (file) {
+            // Reset messages
+            errorMessage.style.display = 'none';
+            successMessage.style.display = 'none';
+
+            // Validate file type
+            if (!file.type.startsWith('image/')) {
+                errorMessage.textContent = 'Please select an image file.';
+                errorMessage.style.display = 'block';
+                previewImage.style.display = 'none';
+                extractButton.disabled = true;
+                return;
+            }
+
+            // Show preview
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                previewImage.src = e.target.result;
+                previewImage.style.display = 'block';
+                dropZone.innerHTML = `
+                    <i class="fas fa-file-image fa-2x mb-2"></i>
+                    <p>Selected: ${file.name}</p>
+                `;
+                extractButton.disabled = false;
+                successMessage.textContent = 'Image loaded successfully. Click Analyze to proceed.';
+                successMessage.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const formData = new FormData();
+        const fileInput = document.getElementById('fileUpload');
+        const errorMessage = document.getElementById('errorMessage');
+        const successMessage = document.getElementById('successMessage');
+        const submitButton = document.getElementById('extractButton');
+
+        if (!fileInput.files[0]) {
+            errorMessage.textContent = 'Please select an image first.';
+            errorMessage.style.display = 'block';
+            return;
+        }
+
+        formData.append('image', fileInput.files[0]);
+        submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Analyzing...';
+        submitButton.disabled = true;
+
+        try {
+            const response = await fetch('/pneumoniapredict', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+
+            // Get the response text
+            const responseText = await response.text();
+            
+            // Replace the entire page content with the response
+            document.documentElement.innerHTML = responseText;
+            
+            // Update the URL without reloading
+            history.pushState({}, '', '/pneumoniapredict');
+
+        } catch (error) {
+            console.error('Error:', error);
+            errorMessage.textContent = 'Error analyzing image. Please try again.';
+            errorMessage.style.display = 'block';
+            submitButton.innerHTML = '<i class="fas fa-search me-2"></i>Analyze X-ray';
+            submitButton.disabled = false;
+        }
+    });
+</script>
+
 {% endblock %}
